@@ -4,249 +4,61 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Digikala Price Finder</title>
-    <style>
-      body {
-        width: 400px;
-        height: 600px;
-        font-family: "IRANSans", "Tahoma", "Arial", sans-serif;
-        margin: 0;
-        padding: 0;
-        background: #f8f9fa;
-        color: #424750;
-        line-height: 1.5;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        border: 0;
-        border-radius: 16px;
-      }
-
-      .header {
-        background: rgba(230, 18, 61, 0.08);
-        padding: 16px 20px;
-        color: #e6113d;
-        text-align: center;
-      }
-
-      .logo {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      }
-
-      .subtitle {
-        font-size: 12px;
-        opacity: 0.9;
-      }
-
-      .content {
-        padding: 16px 20px;
-        flex: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .content::-webkit-scrollbar {
-        width: 4px;
-      }
-
-      .content::-webkit-scrollbar-track {
-        background: #f8f9fa;
-      }
-
-      .content::-webkit-scrollbar-thumb {
-        background: #e0e6ed;
-        border-radius: 2px;
-      }
-
-      .search-container {
-        margin-bottom: 16px;
-      }
-
-      .search-box {
-        width: 100%;
-        padding: 12px 16px;
-        border: 1px solid #e0e6ed;
-        border-radius: 8px;
-        font-size: 14px;
-        direction: rtl;
-        text-align: right;
-        box-sizing: border-box;
-        font-family: inherit;
-        outline: none;
-        transition: border-color 0.3s;
-      }
-
-      .search-box:focus {
-        border-color: #19bfd3;
-        box-shadow: 0 0 0 3px rgba(25, 191, 211, 0.1);
-      }
-
-      .search-btn {
-        width: 100%;
-        padding: 12px;
-        background: #19bfd3;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        margin-top: 8px;
-        transition: background 0.3s;
-        font-family: inherit;
-      }
-
-      .search-btn:hover {
-        background: #1aa7bb;
-      }
-
-      .search-btn:active {
-        background: #1596a6;
-      }
-
-      .current-product {
-        background: white;
-        border: 1px solid #e0e6ed;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-      }
-
-      .product-name {
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #424750;
-        font-size: 14px;
-        line-height: 1.4;
-      }
-
-      .price-info {
-        font-size: 14px;
-        color: #81858b;
-        margin-bottom: 12px;
-      }
-
-      .price-info .price {
-        color: #e6123d;
-        font-weight: bold;
-        font-size: 16px;
-      }
-
-      .results {
-        flex: 1;
-        background: transparent;
-        border-radius: 8px;
-        padding: 0;
-      }
-
-      .loading {
-        text-align: center;
-        padding: 32px 20px;
-        background: white;
-        border-radius: 8px;
-      }
-
-      .spinner {
-        border: 3px solid #f0f0f0;
-        border-top: 3px solid #19bfd3;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 12px;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      .error {
-        background: #fff5f5;
-        border: 1px solid #fed7d7;
-        color: #c53030;
-        padding: 12px 16px;
-        border-radius: 8px;
-        text-align: center;
-        font-size: 14px;
-      }
-
-      .no-results {
-        text-align: center;
-        color: #81858b;
-        font-style: italic;
-        padding: 20px;
-      }
-
-      /* Digikala-style badges */
-      .trusted-badge {
-        background: #00a049;
-        color: white;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-right: 4px;
-      }
-
-      .official-badge {
-        background: #19bfd3;
-        color: white;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-right: 4px;
-      }
-
-      .rank-badge {
-        background: linear-gradient(135deg, #ff6b35, #e6123d);
-        color: white;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: bold;
-      }
-    </style>
+    <link rel="stylesheet" href="../css/content.css" />
   </head>
   <body>
-    <div class="header">
-      <div class="logo">🛒 یاب قیمت دیجیکالا</div>
-      <div class="subtitle">مقایسه قیمت و یافتن بهترین پیشنهادها</div>
+    <div class="search-container">
+      <input
+        type="text"
+        class="search-box"
+        id="searchInput"
+        placeholder="نام محصول را جستجو کنید..."
+      />
+      <button class="search-btn" id="searchBtn">جستجو</button>
     </div>
-
     <div class="content">
-      <div class="search-container">
-        <input
-          type="text"
-          class="search-box"
-          id="searchInput"
-          placeholder="نام محصول را جستجو کنید..."
-        />
-        <button class="search-btn" id="searchBtn">جستجو</button>
-      </div>
-
       <div id="currentProduct" class="current-product" style="display: none">
-        <div class="product-name" id="productName"></div>
-        <div class="price-info">
-          <span>قیمت فعلی: </span>
-          <span class="price" id="currentPrice"></span>
+        <div class="current-product-content">
+          <div class="product-image-container">
+            <img id="productImage" class="product-image" alt="تصویر محصول" style="display: none" />
+            <div class="product-image-placeholder" id="imagePlaceholder">🖼️</div>
+          </div>
+          <div class="product-details">
+            <div class="product-name" id="productName"></div>
+            <div class="price-info">
+              <span>قیمت فعلی: </span>
+              <span class="price" id="currentPrice"></span>
+            </div>
+            <button class="search-btn" id="findPricesBtn">
+              مقایسه قیمت در دیجیکالا و ترب
+            </button>
+          </div>
         </div>
-        <button class="search-btn" id="findPricesBtn">
-          مقایسه قیمت با سایر فروشندگان
-        </button>
       </div>
 
-      <div id="results" class="results"></div>
+      <div class="platforms-container">
+        <!-- Digikala Column -->
+        <div class="platform-column">
+          <div class="platform-header digikala-header">
+            <div class="platform-logo">🛒 دیجیکالا</div>
+            <div class="platform-subtitle">بزرگترین فروشگاه آنلاین ایران</div>
+          </div>
+          <div class="platform-results" id="digikalaResults">
+            <div class="empty-state">برای شروع محصولی را جستجو کنید</div>
+          </div>
+        </div>
+
+        <!-- Torob Column -->
+        <div class="platform-column">
+          <div class="platform-header torob-header">
+            <div class="platform-logo">🔍 ترب</div>
+            <div class="platform-subtitle">موتور جستجوی قیمت</div>
+          </div>
+          <div class="platform-results" id="torobResults">
+            <div class="empty-state">برای شروع محصولی را جستجو کنید</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="../js/popup.js"></script>
