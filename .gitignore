@@ -1,0 +1,37 @@
+# Chrome Extension Development
+*.crx
+*.pem
+*.zip
+
+# Development files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node modules (if using build tools)
+node_modules/
+package-lock.json
+
+# Temporary files
+temp/
+tmp/
+
+# Extension packaging
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+
+# CLAUDE.md (contains development guidance)
+CLAUDE.md

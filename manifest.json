@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Digikala Price Finder",
+  "version": "1.0",
+  "description": "Find the best prices for products on Digikala",
+  "permissions": ["activeTab", "storage", "scripting", "tabs"],
+  "host_permissions": [
+    "https://www.digikala.com/*",
+    "https://api.digikala.com/*"
+  ],
+  "action": {
+    "default_popup": "src/html/popup.html",
+    "default_title": "Digikala Price Finder"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.digikala.com/product/*"],
+      "js": ["src/js/content.js"],
+      "css": ["src/css/content.css"]
+    }
+  ],
+  "background": {
+    "service_worker": "src/js/background.js"
+  },
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  }
+}

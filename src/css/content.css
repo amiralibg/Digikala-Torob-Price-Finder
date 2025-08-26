@@ -1,0 +1,170 @@
+/* Styles for the floating price widget */
+#digikala-price-widget {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 280px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #e6113d;
+  display: none;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateY(-50%) translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(-50%) translateX(0);
+    opacity: 1;
+  }
+}
+
+.price-widget-content {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.widget-header {
+  background: rgba(230, 18, 61, 0.08);
+  padding: 12px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: background 0.3s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.widget-body {
+  padding: 15px;
+}
+
+.compare-btn {
+  width: 100%;
+  padding: 10px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: background 0.3s;
+}
+
+.compare-btn:hover {
+  background: #45a049;
+}
+
+.widget-results {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.widget-results-title {
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.widget-price-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.widget-price {
+  color: #4caf50;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.widget-loading {
+  text-align: center;
+  padding: 20px;
+  font-size: 13px;
+}
+
+.widget-spinner {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 8px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.widget-error {
+  text-align: center;
+  background: rgba(255, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  #digikala-price-widget {
+    right: 10px;
+    width: 250px;
+  }
+}
+
+/* Scrollbar styling for webkit browsers */
+.widget-results::-webkit-scrollbar {
+  width: 4px;
+}
+
+.widget-results::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.widget-results::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.widget-results::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
