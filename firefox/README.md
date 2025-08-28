@@ -1,22 +1,24 @@
-# Digikala Price Finder Chrome Extension
+# Digikala & Torob Price Finder - Firefox Extension
 
 ## Overview
 
-A Chrome extension that helps users find and compare the best prices for products on Digikala, Iran's largest e-commerce platform. The extension provides both a popup interface for manual searches and an automatic floating widget that appears on Digikala product pages.
+A Firefox extension that helps users find and compare the best prices for products on Digikala and Torob, as well as other Iranian e-commerce platforms. The extension provides both a popup interface for manual searches and automatic product detection on supported sites.
 
 ## Features
 
 ### 🛒 **Automatic Product Detection**
-- Automatically detects when you're on a Digikala product page
-- Extracts product name and current price from the page
+- Automatically detects when you're on a Digikala or Torob product page
+- Universal detection works on other Iranian e-commerce sites (Technolife, Basalam, etc.)
+- Enhanced Firefox-compatible product extraction
 - Shows current product info in the extension popup
 
 ### 💰 **Price Comparison**
-- Compare prices across multiple sellers on Digikala
+- Compare prices across multiple sellers on Digikala and Torob
 - Sort results by price (lowest to highest)
 - Display seller ratings and grades for informed decision making
-- Real-time API integration with Digikala's official endpoints
+- Real-time API integration with Digikala and Torob official endpoints
 - Shows exact same product with different sellers when available
+- Cross-platform price comparison between Digikala and Torob
 
 ### 🎨 **Floating Widget**
 - Beautiful floating widget appears on product pages
@@ -50,24 +52,26 @@ Create icons for your extension in the following sizes and save them in the proj
 
 You can create simple shopping cart icons or use any design tool to create these.
 
-### Step 3: Install in Chrome
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode" by clicking the toggle in the top right corner
-3. Click "Load unpacked" button
-4. Select the project directory
+### Step 3: Install in Firefox
+1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on" button
+3. Navigate to the **firefox** directory (not the root directory)
+4. Select the `manifest.json` file
 5. The extension should now appear in your extensions list
 
 ### Step 4: Test the Extension
 1. Visit a Digikala product page like: `https://www.digikala.com/product/dkp-11022424/`
-2. You should see a floating widget appear on the right side after scrolling
-3. Click the extension icon in Chrome's toolbar to open the popup
-4. Try searching for products or comparing prices for the current product
+2. Or visit a Torob product page like: `https://torob.com/p/f2f7a778-a65f-480b-8d5e-9ffd5e03deef/...`
+3. Or test universal detection on other sites like: `https://www.technolife.com/product-69647/...`
+4. You should see automatic product detection in the popup
+5. Click the extension icon in Firefox's toolbar to open the popup
+6. Try searching for products or comparing prices for the current product
 
 ## Technical Architecture
 
 ### Components
 
-- **Background Service Worker** (`background.js`) - Handles extension lifecycle, API calls, and message passing
+- **Background Script** (`background.js`) - Handles extension lifecycle, API calls, and message passing (Manifest V2 compatible)
 - **Content Script** (`content.js`) - Injected into Digikala pages to extract product data and show floating widget
 - **Popup Interface** (`popup.html` + `popup.js`) - Extension popup for manual searches and price comparisons
 - **Styling** (`content.css`) - CSS for the floating widget with Persian/Farsi support
@@ -75,13 +79,16 @@ You can create simple shopping cart icons or use any design tool to create these
 ### Key Permissions
 - `activeTab` - Access to current active tab
 - `storage` - Local data storage for preferences
-- `scripting` - Script injection capabilities
-- Host permissions for `digikala.com` and `api.digikala.com`
+- `tabs` - Tab management and programmatic script injection
+- Host permissions for `digikala.com`, `api.digikala.com`, `torob.com`, and `api.torob.com`
+- Universal permissions for broad e-commerce site detection
 
 ### Content Script Integration
-- Automatically injected on product pages (`https://www.digikala.com/product/*`)
+- **Main Content Script**: Automatically injected on Digikala (`https://www.digikala.com/product/*`) and Torob (`https://torob.com/p/*`) pages
+- **Universal Detector**: Runs on all pages to detect e-commerce sites and products
+- **Torob Width Fix**: Special styling fixes for Torob pages
+- **Firefox Compatibility**: Enhanced browser API detection and fallback script injection
 - Extracts product information using multiple CSS selector strategies
-- Creates and manages floating price comparison widget
 - Handles communication with popup and background scripts
 
 ## Development Notes
@@ -98,11 +105,15 @@ You can create simple shopping cart icons or use any design tool to create these
 - ✅ Seller ratings and grade display
 
 ### API Integration 
-The extension uses real Digikala API endpoints:
+The extension uses real API endpoints from multiple platforms:
 
+**Digikala APIs:**
 1. **Product Details API** - `https://api.digikala.com/v2/product/{id}/` - Get detailed product information and variants
 2. **Search API** - `https://api.digikala.com/v1/search/?q={query}` - Search for related products
 3. **Autocomplete API** - `https://api.digikala.com/v1/autocomplete/?q={query}` - Get search suggestions
+
+**Torob APIs:**
+- **Torob API** - `https://api.torob.com/*` - Product and price comparison data
 
 #### Key Functions:
 - **`getProductCPC()`** - Shows same product with different sellers using product variants
@@ -114,18 +125,27 @@ The extension uses real Digikala API endpoints:
 - **Related Products**: Uses Search API to show similar/related products when searching manually
 
 ### Security Considerations
-- Extension permissions are scoped to Digikala domains only
-- Uses official Digikala API endpoints only
-- Content Security Policy compliant
-- Safe product data extraction with error handling
+- Extension permissions are scoped to specific e-commerce domains (Digikala, Torob, etc.)
+- Uses only official API endpoints from trusted sources
+- Firefox WebExtensions compliant (Manifest V2)
+- Safe product data extraction with comprehensive error handling
 - No sensitive data storage or transmission
+- Enhanced Firefox-specific security measures and API compatibility
 
 ## Browser Compatibility
 
-- **Chrome/Chromium**: Full support (Manifest V3)
-- **Edge**: Compatible with Chromium-based Edge
-- **Firefox**: Requires manifest conversion for WebExtensions
-- **Safari**: Requires additional adaptation for Safari Web Extensions
+- **Firefox**: ✅ Full support (Manifest V2 WebExtensions)
+- **Chrome/Chromium**: ⚠️ See separate Chrome version in `/chrome` directory
+- **Edge**: ⚠️ Use Chrome version for Chromium-based Edge
+- **Safari**: ❌ Requires additional adaptation for Safari Web Extensions
+
+## Firefox-Specific Features
+
+- **Enhanced Compatibility**: Uses Firefox `browser` API with Chrome fallback
+- **Programmatic Injection**: Fallback script injection when manifest declaration fails
+- **Debug Logging**: Comprehensive logging for troubleshooting
+- **DOM Element Handling**: Fixed DataCloneError issues with message passing
+- **Universal Detection**: Works reliably across different Iranian e-commerce sites
 
 ## Future Enhancements
 
@@ -144,7 +164,7 @@ This extension is designed for educational and legitimate price comparison purpo
 1. Maintain focus on defensive security practices
 2. Respect website terms of service
 3. Implement rate limiting for API calls
-4. Follow Chrome extension best practices
+4. Follow Firefox WebExtensions best practices
 
 ## License
 
