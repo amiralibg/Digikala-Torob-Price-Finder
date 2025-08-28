@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // Firefox compatibility - use browser API if available, otherwise use chrome
+    const browserAPI = (typeof browser !== 'undefined' ? browser : chrome);
     // Modal for same product/seller
     function showSellerModal(sellerName) {
         let modal = document.getElementById('seller-modal');
@@ -29,11 +31,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     const findPricesBtn = document.getElementById('findPricesBtn');
     const digikalaResults = document.getElementById('digikalaResults');
     const torobResults = document.getElementById('torobResults');
-    // Helper to log to background page console
+    // Helper to log to background page console (Manifest V3 compatible)
     function logToBackground(...args) {
         try {
-            var bkg = chrome.extension.getBackgroundPage();
-            bkg.console.log('[popup.js]', ...args);
+            // Use regular console.log for Manifest V3 - background logs are visible in service worker console
+            console.log('[popup.js]', ...args);
+            
+            // Also send to background script if needed for debugging
+            browserAPI.runtime.sendMessage({
+                action: 'log',
+                message: '[popup.js] ' + args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                ).join(' ')
+            }).catch(() => {
+                // Ignore if background script can't receive the message
+            });
         } catch (e) {
             console.log('Could not log to background page:', e);
         }
@@ -57,14 +69,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             results: []
         }
     };
+    
+    // Load persisted search results after searchState is initialized
+    await loadPersistedSearchResults();
 
-    // Check if we're on a supported product page (Digikala or Torob)
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Check if we're on a supported product page (Digikala or Torob) or any e-commerce site
+    const [tab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
     
     if (tab.url.includes('digikala.com/product/') || tab.url.includes('torob.com/p/')) {
         // Get current product info from content script
         try {
-            const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' });
+            const response = await browserAPI.tabs.sendMessage(tab.id, { action: 'getProductInfo' });
             logToBackground('Product info from content script:', response);
             if (response && response.success) {
                 currentProductData = response.data;
@@ -73,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (currentProductData.platform === 'digikala' && currentProductData.id) {
                     try {
                         const detailResponse = await new Promise((resolve) => {
-                            chrome.runtime.sendMessage(
+                            browserAPI.runtime.sendMessage(
                                 { action: 'getProductDetails', productId: currentProductData.id },
                                 resolve
                             );
@@ -84,7 +99,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             currentProductData = {
                                 ...currentProductData,
                                 ...detailResponse.data,
-                                name: detailResponse.data.title || currentProductData.name
+                                name: detailResponse.data.title || currentProductData.name,
+                                image: detailResponse.data.mainImage || currentProductData.image
                             };
                         }
                     } catch (apiError) {
@@ -94,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else if (currentProductData.platform === 'torob' && currentProductData.productKey) {
                     try {
                         const detailResponse = await new Promise((resolve) => {
-                            chrome.runtime.sendMessage(
+                            browserAPI.runtime.sendMessage(
                                 { action: 'getTorobProductDetails', productKey: currentProductData.productKey },
                                 resolve
                             );
@@ -105,7 +121,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             currentProductData = {
                                 ...currentProductData,
                                 ...detailResponse.data,
-                                name: detailResponse.data.title || currentProductData.name
+                                name: detailResponse.data.title || currentProductData.name,
+                                image: detailResponse.data.image || currentProductData.image
                             };
                         }
                     } catch (apiError) {
@@ -141,6 +158,32 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             console.log('Could not get product info:', error);
             logToBackground('Product info error:', error);
+        }
+    } else {
+        // Check for universal product detection on other e-commerce sites
+        try {
+            // Check stored detected products first
+            const stored = await browserAPI.storage.local.get(['detectedProducts', 'detectionSite', 'detectionTime']);
+            const currentTime = Date.now();
+            
+            // Use stored data if it's recent (within 5 minutes) and from current tab
+            if (stored.detectedProducts && 
+                stored.detectionTime && 
+                (currentTime - stored.detectionTime) < 300000 && 
+                stored.detectionSite && 
+                tab.url.includes(stored.detectionSite.hostname)) {
+                
+                showDetectedProducts(stored.detectedProducts, stored.detectionSite);
+            } else {
+                // Try to get fresh product detection
+                const response = await browserAPI.tabs.sendMessage(tab.id, { action: 'getAllProducts' });
+                if (response && response.success && response.data && response.data.length > 0) {
+                    showDetectedProducts(response.data, { hostname: new URL(tab.url).hostname });
+                }
+            }
+        } catch (error) {
+            console.log('Could not get universal product detection:', error);
+            logToBackground('Universal product detection error:', error);
         }
     }
 
@@ -200,6 +243,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             displayResults(results);
             setupInfiniteScroll();
+            
+            // Persist search results
+            await persistSearchResults(searchState, results);
         } catch (error) {
             showError('خطا در جستجو. لطفاً دوباره تلاش کنید.');
             console.error('Search error:', error);
@@ -210,7 +256,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function searchBothPlatforms(query) {
         try {
             const response = await new Promise((resolve) => {
-                chrome.runtime.sendMessage(
+                browserAPI.runtime.sendMessage(
                     { action: 'searchBothPlatforms', query: query },
                     resolve
                 );
@@ -271,20 +317,40 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        // Display Digikala results with fade-in animation
+        // Display Digikala results
         if (data.digikala && data.digikala.success && data.digikala.data.length > 0) {
-            digikalaResults.innerHTML = renderPlatformResults(data.digikala.data, 'digikala');
-            animateResults(digikalaResults);
+            const digikalaHTML = renderPlatformResults(data.digikala.data, 'digikala');
+            digikalaResults.innerHTML = digikalaHTML;
+            
+            // Force a reflow and ensure visibility
+            setTimeout(() => {
+                const items = digikalaResults.querySelectorAll('.product-item');
+                items.forEach(item => {
+                    item.style.display = 'block';
+                    item.style.visibility = 'visible';
+                    item.style.opacity = '1';
+                });
+            }, 100);
         } else {
             digikalaResults.innerHTML = `<div class="error-state">
                 ${data.digikala?.error || 'نتیجه‌ای در دیجیکالا یافت نشد'}
             </div>`;
         }
 
-        // Display Torob results with fade-in animation
+        // Display Torob results
         if (data.torob && data.torob.success && data.torob.data.length > 0) {
-            torobResults.innerHTML = renderPlatformResults(data.torob.data, 'torob');
-            animateResults(torobResults);
+            const torobHTML = renderPlatformResults(data.torob.data, 'torob');
+            torobResults.innerHTML = torobHTML;
+            
+            // Force a reflow and ensure visibility
+            setTimeout(() => {
+                const items = torobResults.querySelectorAll('.product-item');
+                items.forEach(item => {
+                    item.style.display = 'block';
+                    item.style.visibility = 'visible';
+                    item.style.opacity = '1';
+                });
+            }, 100);
         } else {
             torobResults.innerHTML = `<div class="error-state">
                 ${data.torob?.error || 'نتیجه‌ای در ترب یافت نشد'}
@@ -293,19 +359,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Add click event listeners
         addClickHandlers();
-    }
-    
-    function animateResults(container) {
-        const items = container.querySelectorAll('.product-item');
-        items.forEach((item, index) => {
-            item.style.opacity = '0';
-            item.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                item.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                item.style.opacity = '1';
-                item.style.transform = 'translateY(0)';
-            }, index * 100);
-        });
     }
 
     function renderPlatformResults(items, platform) {
@@ -350,13 +403,34 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function addClickHandlers() {
-        const productItems = document.querySelectorAll('.product-item');
+        // Add click handlers to all product items (without cloning to avoid display issues)
+        const productItems = document.querySelectorAll('.product-item:not([data-click-handled])');
         productItems.forEach(item => {
-            item.addEventListener('click', function() {
+            // Mark as handled to avoid duplicate handlers
+            item.setAttribute('data-click-handled', 'true');
+            item.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const url = this.getAttribute('data-url');
                 const platform = this.getAttribute('data-platform');
                 
                 if (url) {
+                    // Clean up URL for better display (especially for Torob)
+                    let cleanUrl = url;
+                    if (platform === 'torob') {
+                        // Remove any problematic parameters that might cause split screen
+                        const urlObj = new URL(url);
+                        // Remove utm parameters and other tracking parameters
+                        const paramsToRemove = ['utm_source', 'utm_medium', 'utm_campaign', 'ref', 'source'];
+                        paramsToRemove.forEach(param => {
+                            urlObj.searchParams.delete(param);
+                        });
+                        // Add extension indicator for width fix
+                        urlObj.searchParams.set('from-extension', '1');
+                        cleanUrl = urlObj.toString();
+                    }
+                    
                     // Handle platform-specific URL behavior
                     if (platform === 'digikala') {
                         // Check if it's same product, different seller for Digikala
@@ -373,8 +447,54 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                     }
                     
-                    // Open in new tab
-                    chrome.tabs.create({ url: url });
+                    // Open in new tab with proper configuration
+                    try {
+                        // Firefox-compatible tab creation
+                        const newTab = await browserAPI.tabs.create({ 
+                            url: cleanUrl,
+                            active: true // Switch to the new tab immediately
+                        });
+                        
+                        // For Torob specifically, ensure proper display
+                        if (platform === 'torob') {
+                            // Small delay to ensure tab is ready
+                            setTimeout(async () => {
+                                try {
+                                    // Make sure the tab is active and focused
+                                    await browserAPI.tabs.update(newTab.id, { active: true });
+                                    // Firefox doesn't need window maximizing for extensions
+                                    
+                                    // Send message to apply width fix
+                                    setTimeout(async () => {
+                                        try {
+                                            await browserAPI.tabs.sendMessage(newTab.id, { 
+                                                action: 'applyWidthFix' 
+                                            });
+                                            console.log('Width fix message sent to Torob tab');
+                                        } catch (messageError) {
+                                            console.log('Could not send width fix message:', messageError);
+                                        }
+                                    }, 1000); // Wait for page to load
+                                } catch (focusError) {
+                                    console.log('Could not focus Torob tab:', focusError);
+                                }
+                            }, 200);
+                        }
+                        
+                        // Close the popup after opening the tab
+                        setTimeout(() => {
+                            window.close();
+                        }, 300);
+                        
+                    } catch (error) {
+                        console.error('Error opening tab:', error);
+                        // Fallback to simple tab creation
+                        browserAPI.tabs.create({ 
+                            url: cleanUrl,
+                            active: true
+                        });
+                        window.close();
+                    }
                 }
             });
         });
@@ -438,7 +558,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         try {
             const response = await new Promise((resolve) => {
-                chrome.runtime.sendMessage({
+                browserAPI.runtime.sendMessage({
                     action: 'loadMoreResults',
                     query: searchState.query,
                     platform: platform,
@@ -511,4 +631,186 @@ document.addEventListener('DOMContentLoaded', async function() {
             container.appendChild(tempDiv.firstChild);
         }
     }
+    
+    // Function to show detected products from universal detection
+    function showDetectedProducts(products, site) {
+        const detectedProducts = document.getElementById('detectedProducts');
+        const detectedProductsList = document.getElementById('detectedProductsList');
+        
+        if (!products || products.length === 0) {
+            detectedProducts.style.display = 'none';
+            return;
+        }
+        
+        // Update header with site info
+        const subtitle = document.querySelector('#detectedProducts .platform-subtitle');
+        subtitle.textContent = `در ${site.hostname} محصولات زیر پیدا کردیم`;
+        
+        // Render detected products
+        let html = '';
+        products.slice(0, 5).forEach((product) => {
+            html += `
+                <div class="detected-product-item" data-product-name="${product.name}">
+                    <div class="detected-product-content">
+                        <div class="detected-product-image">
+                            ${product.image && product.image.trim() ? 
+                                `<img src="${product.image}" alt="تصویر محصول" class="search-result-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                 <div class="search-result-image-placeholder" style="display: none;">🖼️</div>` : 
+                                '<div class="search-result-image-placeholder">🖼️</div>'
+                            }
+                        </div>
+                        <div class="detected-product-details">
+                            <div class="detected-product-name">${product.name}</div>
+                            <div class="detected-product-source">
+                                <div>از ${site.hostname}</div>
+                                ${product.price ? `<div>${formatPrice(product.price)}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        detectedProductsList.innerHTML = html;
+        detectedProducts.style.display = 'block';
+        
+        // Add click handlers for detected products
+        const detectedItems = detectedProductsList.querySelectorAll('.detected-product-item');
+        detectedItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const productName = this.getAttribute('data-product-name');
+                if (productName) {
+                    // Set search input and perform search
+                    searchInput.value = productName;
+                    performSearch();
+                }
+            });
+        });
+    }
+    
+    // Function to persist search results
+    async function persistSearchResults(searchState, results) {
+        try {
+            const persistData = {
+                searchState: searchState,
+                results: results,
+                timestamp: Date.now(),
+                version: '2.0'
+            };
+            
+            await browserAPI.storage.local.set({ 
+                persistedSearchResults: persistData 
+            });
+            
+            console.log('[popup.js] Search results persisted successfully:', {
+                query: searchState.query,
+                digikalaCount: results.digikala?.data?.length || 0,
+                torobCount: results.torob?.data?.length || 0,
+                timestamp: persistData.timestamp
+            });
+        } catch (error) {
+            console.error('Failed to persist search results:', error);
+            logToBackground('Persist search results error:', error);
+        }
+    }
+    
+    // Function to load persisted search results
+    async function loadPersistedSearchResults() {
+        try {
+            console.log('[popup.js] Loading persisted search results...');
+            
+            const stored = await browserAPI.storage.local.get(['persistedSearchResults']);
+            const persistData = stored.persistedSearchResults;
+            
+            console.log('[popup.js] Retrieved stored data:', persistData ? 'exists' : 'not found');
+            
+            if (!persistData || !persistData.searchState || !persistData.results) {
+                console.log('[popup.js] No valid persisted data found');
+                return;
+            }
+            
+            // Check if data is recent (within 24 hours)
+            const currentTime = Date.now();
+            const dataAge = currentTime - persistData.timestamp;
+            const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+            
+            console.log('[popup.js] Data age:', Math.round(dataAge / 1000 / 60), 'minutes');
+            
+            if (dataAge > twentyFourHours) {
+                // Data is too old, clear it
+                console.log('[popup.js] Data is too old, clearing...');
+                await browserAPI.storage.local.remove(['persistedSearchResults']);
+                return;
+            }
+            
+            // Restore search state
+            searchState = persistData.searchState;
+            
+            // Restore search input
+            if (searchState.query) {
+                searchInput.value = searchState.query;
+                console.log('[popup.js] Restored search query:', searchState.query);
+            }
+            
+            // Display persisted results
+            console.log('[popup.js] Restoring results:', {
+                digikala: persistData.results.digikala?.data?.length || 0,
+                torob: persistData.results.torob?.data?.length || 0
+            });
+            
+            displayResults(persistData.results);
+            setupInfiniteScroll();
+            
+            // Add clear button for persisted results
+            addClearResultsButton();
+            
+        } catch (error) {
+            console.error('Failed to load persisted search results:', error);
+            logToBackground('Load persisted search results error:', error);
+        }
+    }
+    
+    // Function to clear persisted search results
+    async function clearPersistedSearchResults() {
+        try {
+            await browserAPI.storage.local.remove(['persistedSearchResults']);
+        } catch (error) {
+            console.error('Failed to clear persisted search results:', error);
+        }
+    }
+    
+    // Add a clear button to the UI (optional)
+    function addClearResultsButton() {
+        // Check if there are search results either in state or displayed in DOM
+        const hasStateResults = searchState.query && (searchState.digikala.results.length > 0 || searchState.torob.results.length > 0);
+        const hasDisplayedResults = searchState.query && (
+            digikalaResults.querySelectorAll('.product-item').length > 0 || 
+            torobResults.querySelectorAll('.product-item').length > 0
+        );
+        
+        if (hasStateResults || hasDisplayedResults) {
+            const searchContainer = document.querySelector('.search-container');
+            let clearBtn = document.getElementById('clearResultsBtn');
+            
+            if (!clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.id = 'clearResultsBtn';
+                clearBtn.className = 'search-btn';
+                clearBtn.style.marginLeft = '8px'; // Add some spacing
+                clearBtn.textContent = 'پاک کردن نتایج';
+                clearBtn.addEventListener('click', async function() {
+                    await clearPersistedSearchResults();
+                    location.reload(); // Refresh the popup
+                });
+                searchContainer.appendChild(clearBtn);
+            }
+        }
+    }
+    
+    // Call addClearResultsButton after displaying results
+    const originalDisplayResults = displayResults;
+    displayResults = function(data) {
+        originalDisplayResults(data);
+        addClearResultsButton();
+    };
 });

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Digikala Price Finder</title>
+    <link rel="stylesheet" href="../css/content.css" />
+  </head>
+  <body>
+    <div class="search-container">
+      <input
+        type="text"
+        class="search-box"
+        id="searchInput"
+        placeholder="نام محصول را جستجو کنید..."
+      />
+      <button class="search-btn" id="searchBtn">جستجو</button>
+    </div>
+    <div class="content">
+      <div id="currentProduct" class="current-product" style="display: none">
+        <div class="current-product-content">
+          <div class="product-image-container">
+            <img id="productImage" class="product-image" alt="تصویر محصول" style="display: none" />
+            <div class="product-image-placeholder" id="imagePlaceholder">🖼️</div>
+          </div>
+          <div class="product-details">
+            <div class="product-name" id="productName"></div>
+            <div class="price-info">
+              <span>قیمت فعلی: </span>
+              <span class="price" id="currentPrice"></span>
+            </div>
+            <button class="search-btn" id="findPricesBtn">
+              مقایسه قیمت در دیجیکالا و ترب
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="detectedProducts" class="detected-products" style="display: none">
+        <div class="detected-header">
+          <div class="platform-logo">🔍 محصولات یافت شده</div>
+          <div class="platform-subtitle">در این صفحه محصولات زیر پیدا کردیم</div>
+        </div>
+        <div class="detected-products-list" id="detectedProductsList">
+        </div>
+      </div>
+
+      <div class="platforms-container">
+        <!-- Digikala Column -->
+        <div class="platform-column">
+          <div class="platform-header digikala-header">
+            <div class="platform-logo">🛒 دیجیکالا</div>
+            <div class="platform-subtitle">بزرگترین فروشگاه آنلاین ایران</div>
+          </div>
+          <div class="platform-results" id="digikalaResults">
+            <div class="empty-state">برای شروع محصولی را جستجو کنید</div>
+          </div>
+        </div>
+
+        <!-- Torob Column -->
+        <div class="platform-column">
+          <div class="platform-header torob-header">
+            <div class="platform-logo">🔍 ترب</div>
+            <div class="platform-subtitle">موتور جستجوی قیمت</div>
+          </div>
+          <div class="platform-results" id="torobResults">
+            <div class="empty-state">برای شروع محصولی را جستجو کنید</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/popup.js"></script>
+  </body>
+</html>

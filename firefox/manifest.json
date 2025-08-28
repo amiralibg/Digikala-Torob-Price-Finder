@@ -1,16 +1,20 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "Digikala & Torob Price Finder",
   "version": "2.0",
   "description": "Find the best prices for products on Digikala and Torob",
-  "permissions": ["activeTab", "storage", "scripting", "tabs"],
-  "host_permissions": [
+  "permissions": [
+    "activeTab", 
+    "storage", 
+    "tabs",
     "https://www.digikala.com/*",
     "https://api.digikala.com/*",
     "https://torob.com/*",
-    "https://api.torob.com/*"
+    "https://api.torob.com/*",
+    "https://*/*",
+    "http://*/*"
   ],
-  "action": {
+  "browser_action": {
     "default_popup": "src/html/popup.html",
     "default_title": "Digikala & Torob Price Finder"
   },
@@ -22,10 +26,26 @@
       ],
       "js": ["src/js/content.js"],
       "css": ["src/css/content.css"]
+    },
+    {
+      "matches": [
+        "https://torob.com/*"
+      ],
+      "js": ["src/js/torob-width-fix.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": ["src/js/universal-product-detector.js"],
+      "run_at": "document_end"
     }
   ],
   "background": {
-    "service_worker": "src/js/background.js"
+    "scripts": ["src/js/background.js"],
+    "persistent": false
   },
   "icons": {
     "16": "assets/icons/icon16.png",
@@ -34,9 +54,6 @@
     "128": "assets/icons/icon128.png"
   },
   "web_accessible_resources": [
-    {
-      "resources": ["assets/fonts/*.ttf"],
-      "matches": ["<all_urls>"]
-    }
+    "assets/fonts/*.ttf"
   ]
 }

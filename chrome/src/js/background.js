@@ -60,6 +60,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .then((result) => sendResponse({ success: true, data: result }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
+  } else if (request.action === "log") {
+    // Handle log messages from popup
+    console.log(request.message);
+    return false; // No response needed
   }
 });
 
@@ -109,7 +113,7 @@ async function searchPricesAPI(query, page = 1) {
           rating: product.rating?.average_rating || 4.0,
           title: product.title_fa || product.title_en || "محصول نامشخص",
           url: `https://www.digikala.com/product/dkp-${product.id}/`,
-          image: product.images?.main?.url?.[0] || product.images?.list?.[0]?.image?.url?.[0] || "",
+          image: getProductImage(product),
           discount:
             originalPrice > price
               ? Math.round(((originalPrice - price) / originalPrice) * 100)
@@ -162,7 +166,7 @@ async function searchPricesAPI(query, page = 1) {
             rating: product.rating?.average_rating || 4.0,
             title: product.title_fa || "محصول نامشخص",
             url: `https://www.digikala.com/product/dkp-${product.id}/`,
-            image: product.images?.main?.url?.[0] || product.images?.list?.[0]?.image?.url?.[0] || "",
+            image: getProductImage(product),
             isTrusted: seller.properties?.is_trusted || false,
             isOfficial: seller.properties?.is_official || false,
           };
@@ -217,7 +221,7 @@ async function getDigikalaProductDetails(productId) {
       brand: product.brand?.title_fa || product.brand?.title_en || "",
       category: product.category?.title_fa || product.category?.title_en || "",
       images: product.images?.list || [],
-      mainImage: product.images?.main?.url?.[0] || product.images?.list?.[0]?.image?.url?.[0] || "",
+      mainImage: getProductImage(product),
       availability:
         product.default_variant?.is_available || product.is_available || false,
       url: `https://www.digikala.com/product/dkp-${productId}/`,
@@ -373,7 +377,7 @@ async function getProductCPC(productId) {
             url:
               variant.url ||
               `https://www.digikala.com/product/dkp-${product.id}/?seller-view-token=${variant.id}`,
-            image: product.images?.main?.url?.[0] || product.images?.list?.[0]?.image?.url?.[0] || "",
+            image: getProductImage(product),
             discount:
               originalPrice > price
                 ? Math.round(((originalPrice - price) / originalPrice) * 100)
@@ -508,7 +512,7 @@ async function getProductCPC(productId) {
           rating: defaultVariant.rate || product.rating?.average_rating || 4.0,
           title: product.title_fa || product.title_en || "محصول نامشخص",
           url: `https://www.digikala.com/product/dkp-${product.id}/`,
-          image: product.images?.main?.url?.[0] || product.images?.list?.[0]?.image?.url?.[0] || "",
+          image: getProductImage(product),
           discount:
             originalPrice > price
               ? Math.round(((originalPrice - price) / originalPrice) * 100)
@@ -601,42 +605,6 @@ async function searchTorobAPI(query, page = 1) {
     const products = data.results || [];
 
     const results = products.slice(0, 10).map((product) => {
-      // Convert Persian numbers to English for price parsing
-      const convertPersianToEnglish = (str) => {
-        const persianNumbers = [
-          "۰",
-          "۱",
-          "۲",
-          "۳",
-          "۴",
-          "۵",
-          "۶",
-          "۷",
-          "۸",
-          "۹",
-        ];
-        const englishNumbers = [
-          "0",
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-        ];
-
-        let result = str;
-        persianNumbers.forEach((persianNum, index) => {
-          result = result.replace(
-            new RegExp(persianNum, "g"),
-            englishNumbers[index]
-          );
-        });
-        return result;
-      };
 
       const price = product.price || 0;
       const shop_text = product.shop_text || "";
@@ -761,6 +729,30 @@ async function loadMoreResults(query, platform, page) {
     console.error(`Error loading more ${platform} results:`, error);
     throw error;
   }
+}
+
+// Helper function to extract the best product image from API response
+function getProductImage(product) {
+  // Try different image sources in order of preference
+  const imageSources = [
+    product.images?.main?.url?.[0],
+    product.images?.main?.url?.[1], 
+    product.images?.list?.[0]?.image?.url?.[0],
+    product.images?.list?.[0]?.image?.url?.[1],
+    product.images?.list?.[0]?.url?.[0],
+    product.images?.list?.[1]?.image?.url?.[0],
+    product.default_variant?.images?.main?.url?.[0],
+    product.default_variant?.images?.list?.[0]?.image?.url?.[0]
+  ];
+  
+  // Return the first valid image URL
+  for (const imageUrl of imageSources) {
+    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+  }
+  
+  return "";
 }
 
 // Helper function to generate random ID for API calls
