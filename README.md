@@ -180,16 +180,10 @@ DigikalaExtention/
 
 This extension is designed for:
 
-- ✅ Educational purposes and legitimate price comparison
 - ✅ Helping consumers find better deals
 - ✅ Transparent price information access
-
-Please ensure compliance with:
-
-- Website terms of service
-- Applicable local laws
-- Ethical web scraping practices
-- Rate limiting for API calls
+- ✅ use public API of this websites
+- ✅ Ethical page scraping for product detection
 
 ## 🤝 Contributing
 
