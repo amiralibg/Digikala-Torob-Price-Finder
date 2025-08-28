@@ -2,7 +2,9 @@
 (function () {
   "use strict";
 
+  console.log("[Firefox Content Script] Loading on:", window.location.href);
   const currentSite = detectCurrentSite();
+  console.log("[Firefox Content Script] Detected site:", currentSite);
 
   // Detect current site
   function detectCurrentSite() {
@@ -17,11 +19,23 @@
 
   // Listen for messages from popup (Firefox compatible)
   const runtimeAPI = (typeof browser !== 'undefined' ? browser : chrome);
+  console.log("[Firefox Content Script] Runtime API:", runtimeAPI ? 'available' : 'not available');
+  
   runtimeAPI.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    console.log("[Firefox Content Script] Received message:", request);
+    
+    if (request.action === "ping") {
+      sendResponse({ success: true, message: "pong" });
+      return true;
+    }
+    
     if (request.action === "getProductInfo") {
       const productInfo = extractProductInfo();
+      console.log("[Firefox Content Script] Extracted product info:", productInfo);
       sendResponse({ success: true, data: productInfo });
+      return true;
     }
+    
     return true;
   });
 

@@ -5,8 +5,11 @@
   // Skip if we're on supported sites (they have their own content script)
   if (window.location.href.includes("digikala.com/product/") || 
       window.location.href.includes("torob.com/p/")) {
+    console.log("[Firefox Universal Detector] Skipping supported site:", window.location.href);
     return;
   }
+  
+  console.log("[Firefox Universal Detector] Loading on unsupported site:", window.location.href);
 
   const currentSite = detectCurrentSite();
   let detectedProducts = [];
@@ -541,22 +544,48 @@
 
   // Listen for messages from popup (Firefox compatible)
   const runtimeAPI = (typeof browser !== 'undefined' ? browser : chrome);
+  console.log("[Firefox Universal Detector] Setting up message listener on:", window.location.href);
+  console.log("[Firefox Universal Detector] Runtime API:", runtimeAPI ? 'available' : 'not available');
+  
   runtimeAPI.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    console.log("[Firefox Universal Detector] Received message:", request);
     if (request.action === "getProductInfo") {
       // For universal detection, return the first detected product or null
       const products = detectProducts();
       if (products.length > 0) {
-        sendResponse({ success: true, data: products[0] });
+        // Remove DOM elements before sending
+        const cleanProduct = cleanProductForMessage(products[0]);
+        sendResponse({ success: true, data: cleanProduct });
       } else {
         sendResponse({ success: false, data: null });
       }
     } else if (request.action === "getAllProducts") {
       // Return all detected products
       const products = detectProducts();
-      sendResponse({ success: true, data: products });
+      // Remove DOM elements before sending
+      const cleanProducts = products.map(cleanProductForMessage);
+      console.log("[Firefox Universal Detector] Sending cleaned products:", cleanProducts.length);
+      sendResponse({ success: true, data: cleanProducts });
     }
     return true;
   });
+
+  // Clean product object for message passing (remove DOM elements)
+  function cleanProductForMessage(product) {
+    if (!product) return null;
+    
+    // Create a new object without the container property
+    return {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      url: product.url,
+      platform: product.platform,
+      isMainProduct: product.isMainProduct,
+      isRelated: product.isRelated
+    };
+  }
 
   // Auto-detect products when page loads
   function initializeProductDetection() {
@@ -570,9 +599,10 @@
         
         if (detectedProducts.length > 0) {
           console.log('Detected products:', detectedProducts.map(p => p.name));
-          // Store detected products for popup to access
+          // Store detected products for popup to access (clean them first)
+          const cleanProducts = detectedProducts.map(cleanProductForMessage);
           runtimeAPI.storage.local.set({
-            detectedProducts: detectedProducts,
+            detectedProducts: cleanProducts,
             detectionSite: currentSite,
             detectionTime: Date.now()
           });

@@ -25,6 +25,8 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #e0e6ed transparent;
 }
 
 *::-webkit-scrollbar {
@@ -49,7 +51,7 @@ body {
   padding: 0;
   color: #2d3748;
   line-height: 1.6;
-  overflow: hidden;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   background-color: white;

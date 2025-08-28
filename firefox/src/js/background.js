@@ -1,32 +1,52 @@
 // Background script for Firefox extension (Manifest V2)
-chrome.runtime.onInstalled.addListener(() => {
+const runtimeAPI = (typeof browser !== 'undefined' ? browser : runtimeAPI);
+
+runtimeAPI.runtime.onInstalled.addListener(() => {
   console.log("Digikala & Torob Price Finder extension installed");
 });
 
 // Handle extension icon click (browserAction for Manifest V2)
-if (chrome.browserAction && chrome.browserAction.onClicked) {
-  chrome.browserAction.onClicked.addListener((tab) => {
+if (runtimeAPI.browserAction && runtimeAPI.browserAction.onClicked) {
+  runtimeAPI.browserAction.onClicked.addListener((tab) => {
     // This will open the popup automatically due to default_popup in manifest
   });
 }
 
 // Listen for tab updates to inject content script if needed
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+runtimeAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (
     changeInfo.status === "complete" &&
     tab.url &&
     (tab.url.includes("digikala.com/product/") ||
       tab.url.includes("torob.com/p/"))
   ) {
-    // Content script should already be injected via manifest, but we can add additional logic here if needed
-    chrome.tabs.sendMessage(tabId, { action: "pageUpdated" }).catch(() => {
-      // Ignore errors if content script is not ready yet
+    console.log("[Firefox Background] Tab updated:", tab.url);
+    
+    // Test if content script is already working
+    runtimeAPI.tabs.sendMessage(tabId, { action: "ping" }).then((response) => {
+      console.log("[Firefox Background] Content script ping successful:", response);
+    }).catch(() => {
+      console.log("[Firefox Background] Content script not responding, attempting injection");
+      
+      // Try to inject content script programmatically as fallback
+      runtimeAPI.tabs.executeScript(tabId, {
+        file: "src/js/content.js",
+        runAt: "document_end"
+      }).then(() => {
+        console.log("[Firefox Background] Content script injected successfully");
+        // Also inject CSS
+        runtimeAPI.tabs.insertCSS(tabId, {
+          file: "src/css/content.css"
+        });
+      }).catch((error) => {
+        console.error("[Firefox Background] Failed to inject content script:", error);
+      });
     });
   }
 });
 
 // Handle messages from content script or popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+runtimeAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "searchPrices") {
     searchPricesAPI(request.query)
       .then((results) => sendResponse({ success: true, data: results }))
