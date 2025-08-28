@@ -211,20 +211,16 @@ Contributions are welcome! Please:
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/amiralibg/DigikalaExtention/issues)
-- **Documentation**: [CLAUDE.md](CLAUDE.md)
-- **License**: Educational use only
+- **License**: 
 
 ## 🏷️ Version History
 
-- **v2.0**: Added Torob support and universal product detection
-- **v1.0**: Initial release with Digikala integration
+- **v0.1**: Initial release with Digikala and Trob integration | Product Detection
 
 ---
 
 <div align="center">
 
 **Made with ❤️ for Iranian e-commerce consumers**
-
-_This project is for educational and legitimate price comparison purposes only_
 
 </div>
