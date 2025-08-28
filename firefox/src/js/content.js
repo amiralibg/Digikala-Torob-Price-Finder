@@ -2,9 +2,7 @@
 (function () {
   "use strict";
 
-  console.log("[Firefox Content Script] Loading on:", window.location.href);
   const currentSite = detectCurrentSite();
-  console.log("[Firefox Content Script] Detected site:", currentSite);
 
   // Detect current site
   function detectCurrentSite() {
@@ -18,24 +16,20 @@
   }
 
   // Listen for messages from popup (Firefox compatible)
-  const runtimeAPI = (typeof browser !== 'undefined' ? browser : chrome);
-  console.log("[Firefox Content Script] Runtime API:", runtimeAPI ? 'available' : 'not available');
-  
+  const runtimeAPI = typeof browser !== "undefined" ? browser : chrome;
+
   runtimeAPI.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-    console.log("[Firefox Content Script] Received message:", request);
-    
     if (request.action === "ping") {
       sendResponse({ success: true, message: "pong" });
       return true;
     }
-    
+
     if (request.action === "getProductInfo") {
       const productInfo = extractProductInfo();
-      console.log("[Firefox Content Script] Extracted product info:", productInfo);
       sendResponse({ success: true, data: productInfo });
       return true;
     }
-    
+
     return true;
   });
 
@@ -111,8 +105,8 @@
       // New Digikala selectors (2024+)
       '[data-testid="pdp-gallery-image"] img',
       '[data-testid="gallery-image"] img',
-      '.swiper-slide-active img',
-      '.swiper-slide:first-child img',
+      ".swiper-slide-active img",
+      ".swiper-slide:first-child img",
       // Gallery selectors
       ".c-gallery__item img",
       ".gallery-image img",
@@ -127,15 +121,15 @@
       // Generic product image selectors
       'img[src*="dkstatics"]',
       'img[src*="digikala"]',
-      'main img',
-      '.product img',
+      "main img",
+      ".product img",
     ];
 
     let imageUrl = "";
     for (const selector of imageSelectors) {
       const elements = document.querySelectorAll(selector);
       for (const element of elements) {
-        if (element && element.src && element.src.startsWith('http')) {
+        if (element && element.src && element.src.startsWith("http")) {
           // Skip if it's a tiny image (likely icon or placeholder)
           if (element.naturalWidth > 100 && element.naturalHeight > 100) {
             imageUrl = element.src;
@@ -148,24 +142,25 @@
       }
       if (imageUrl) break;
     }
-    
+
     // If still no image found, try data attributes and lazy loading images
     if (!imageUrl) {
       const lazyImageSelectors = [
-        'img[data-src]',
-        'img[data-lazy-src]',
-        'img[data-original]',
+        "img[data-src]",
+        "img[data-lazy-src]",
+        "img[data-original]",
         '[data-testid*="gallery"] img[data-src]',
-        '.swiper-slide img[data-src]'
+        ".swiper-slide img[data-src]",
       ];
-      
+
       for (const selector of lazyImageSelectors) {
         const element = document.querySelector(selector);
         if (element) {
-          const dataSrc = element.getAttribute('data-src') || 
-                         element.getAttribute('data-lazy-src') || 
-                         element.getAttribute('data-original');
-          if (dataSrc && dataSrc.startsWith('http')) {
+          const dataSrc =
+            element.getAttribute("data-src") ||
+            element.getAttribute("data-lazy-src") ||
+            element.getAttribute("data-original");
+          if (dataSrc && dataSrc.startsWith("http")) {
             imageUrl = dataSrc;
             break;
           }
@@ -237,29 +232,29 @@
       // Torob specific selectors
       '[data-cy="product-image"] img',
       ".product-image img",
-      ".product-gallery img", 
+      ".product-gallery img",
       ".gallery img",
       ".main-image img",
       // Generic selectors
       'img[alt*="تصویر"]',
-      'img[alt*="محصول"]', 
+      'img[alt*="محصول"]',
       'img[alt*="عکس"]',
       // Domain specific
       'img[src*="image.torob.com"]',
       'img[src*="torob"]',
       // Fallback selectors
-      'main img',
-      '.product img',
+      "main img",
+      ".product img",
       'img[width="300"]', // Common product image size on Torob
-      'img[width="400"]'
+      'img[width="400"]',
     ];
 
     let imageUrl = "";
     for (const selector of imageSelectors) {
       const elements = document.querySelectorAll(selector);
       for (const element of elements) {
-        if (element && element.src && element.src.startsWith('http')) {
-          // Skip if it's a tiny image (likely icon or placeholder)  
+        if (element && element.src && element.src.startsWith("http")) {
+          // Skip if it's a tiny image (likely icon or placeholder)
           if (element.naturalWidth > 100 && element.naturalHeight > 100) {
             imageUrl = element.src;
             break;
@@ -271,23 +266,24 @@
       }
       if (imageUrl) break;
     }
-    
+
     // Try lazy loading images if no image found
     if (!imageUrl) {
       const lazySelectors = [
-        'img[data-src]',
-        'img[data-lazy-src]', 
-        'img[data-original]',
-        '[data-cy*="image"] img[data-src]'
+        "img[data-src]",
+        "img[data-lazy-src]",
+        "img[data-original]",
+        '[data-cy*="image"] img[data-src]',
       ];
-      
+
       for (const selector of lazySelectors) {
         const element = document.querySelector(selector);
         if (element) {
-          const dataSrc = element.getAttribute('data-src') || 
-                         element.getAttribute('data-lazy-src') || 
-                         element.getAttribute('data-original');
-          if (dataSrc && dataSrc.startsWith('http')) {
+          const dataSrc =
+            element.getAttribute("data-src") ||
+            element.getAttribute("data-lazy-src") ||
+            element.getAttribute("data-original");
+          if (dataSrc && dataSrc.startsWith("http")) {
             imageUrl = dataSrc;
             break;
           }

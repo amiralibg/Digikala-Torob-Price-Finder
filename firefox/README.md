@@ -56,8 +56,10 @@ You can create simple shopping cart icons or use any design tool to create these
 1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on" button
 3. Navigate to the **firefox** directory (not the root directory)
-4. Select the `manifest.json` file
+4. **Important**: Select the `manifest.json` file directly (not the folder)
 5. The extension should now appear in your extensions list
+
+**Note**: Firefox requires you to select the manifest.json file itself, not the containing folder. If you get "manifest.json was not found" error, ensure you're selecting the file, not the directory.
 
 ### Step 4: Test the Extension
 1. Visit a Digikala product page like: `https://www.digikala.com/product/dkp-11022424/`

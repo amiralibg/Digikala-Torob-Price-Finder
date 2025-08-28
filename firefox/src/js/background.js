@@ -1,8 +1,8 @@
 // Background script for Firefox extension (Manifest V2)
-const runtimeAPI = (typeof browser !== 'undefined' ? browser : runtimeAPI);
+const runtimeAPI = typeof browser !== "undefined" ? browser : chrome;
 
 runtimeAPI.runtime.onInstalled.addListener(() => {
-  console.log("Digikala & Torob Price Finder extension installed");
+  // console.log("Digikala & Torob Price Finder extension installed");
 });
 
 // Handle extension icon click (browserAction for Manifest V2)
@@ -20,28 +20,35 @@ runtimeAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     (tab.url.includes("digikala.com/product/") ||
       tab.url.includes("torob.com/p/"))
   ) {
-    console.log("[Firefox Background] Tab updated:", tab.url);
-    
     // Test if content script is already working
-    runtimeAPI.tabs.sendMessage(tabId, { action: "ping" }).then((response) => {
-      console.log("[Firefox Background] Content script ping successful:", response);
-    }).catch(() => {
-      console.log("[Firefox Background] Content script not responding, attempting injection");
-      
-      // Try to inject content script programmatically as fallback
-      runtimeAPI.tabs.executeScript(tabId, {
-        file: "src/js/content.js",
-        runAt: "document_end"
-      }).then(() => {
-        console.log("[Firefox Background] Content script injected successfully");
-        // Also inject CSS
-        runtimeAPI.tabs.insertCSS(tabId, {
-          file: "src/css/content.css"
-        });
-      }).catch((error) => {
-        console.error("[Firefox Background] Failed to inject content script:", error);
+    runtimeAPI.tabs
+      .sendMessage(tabId, { action: "ping" })
+      .then((response) => {
+        // console.log("[Firefox Background] Content script ping successful:", response);
+      })
+      .catch(() => {
+        // console.log("[Firefox Background] Content script not responding, attempting injection");
+
+        // Try to inject content script programmatically as fallback
+        runtimeAPI.tabs
+          .executeScript(tabId, {
+            file: "src/js/content.js",
+            runAt: "document_end",
+          })
+          .then(() => {
+            // console.log("[Firefox Background] Content script injected successfully");
+            // Also inject CSS
+            runtimeAPI.tabs.insertCSS(tabId, {
+              file: "src/css/content.css",
+            });
+          })
+          .catch((error) => {
+            console.error(
+              "[Firefox Background] Failed to inject content script:",
+              error
+            );
+          });
       });
-    });
   }
 });
 
@@ -53,7 +60,11 @@ runtimeAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true; // Indicates we will send a response asynchronously
   } else if (request.action === "searchBothPlatforms") {
-    searchBothPlatforms(request.query, request.digikalaPage || 1, request.torobPage || 1)
+    searchBothPlatforms(
+      request.query,
+      request.digikalaPage || 1,
+      request.torobPage || 1
+    )
       .then((results) => sendResponse({ success: true, data: results }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
@@ -84,7 +95,7 @@ runtimeAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   } else if (request.action === "log") {
     // Handle log messages from popup
-    console.log(request.message);
+    // console.log(request.message);
     return false; // No response needed
   }
 });
@@ -92,21 +103,16 @@ runtimeAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Function to search prices using real Digikala API
 async function searchPricesAPI(query, page = 1) {
   try {
-    console.log('Digikala API: Starting direct search for query:', query, 'page:', page);
-
     // Search for products directly (skip autocomplete for now)
-    const searchUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(query)}&page=${page}`;
-    console.log('Digikala API: Search URL:', searchUrl);
-    
+    const searchUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(
+      query
+    )}&page=${page}`;
     const searchResponse = await fetch(searchUrl);
-    console.log('Digikala API: Search response status:', searchResponse.status);
-    
     if (!searchResponse.ok) {
       throw new Error(`Search API returned status ${searchResponse.status}`);
     }
-    
+
     const searchData = await searchResponse.json();
-    console.log('Digikala API: Search data structure:', Object.keys(searchData));
 
     // Extract product data and format for our needs
     const products = searchData.data?.products || [];
@@ -146,25 +152,24 @@ async function searchPricesAPI(query, page = 1) {
       })
       .sort((a, b) => a.price - b.price);
 
-    console.log('Digikala API: Returning', results.length, 'results');
     return results;
   } catch (error) {
     console.error("Digikala API: Error in main search:", error);
     // Fallback to basic search if autocomplete fails
     try {
-      console.log('Digikala API: Attempting fallback search');
-      const fallbackUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(query)}&page=${page}`;
-      console.log('Digikala API: Fallback URL:', fallbackUrl);
-      
+      const fallbackUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(
+        query
+      )}&page=${page}`;
+
       const searchResponse = await fetch(fallbackUrl);
-      console.log('Digikala API: Fallback response status:', searchResponse.status);
-      
+
       if (!searchResponse.ok) {
-        throw new Error(`Fallback search API returned status ${searchResponse.status}`);
+        throw new Error(
+          `Fallback search API returned status ${searchResponse.status}`
+        );
       }
-      
+
       const searchData = await searchResponse.json();
-      console.log('Digikala API: Fallback data structure:', Object.keys(searchData));
 
       const products = searchData.data?.products || [];
 
@@ -195,7 +200,10 @@ async function searchPricesAPI(query, page = 1) {
         })
         .sort((a, b) => a.price - b.price);
     } catch (fallbackError) {
-      console.error("Digikala API: Fallback search also failed:", fallbackError);
+      console.error(
+        "Digikala API: Fallback search also failed:",
+        fallbackError
+      );
       throw new Error("جستجو با خطا مواجه شد");
     }
   }
@@ -275,59 +283,16 @@ async function getProductCPC(productId) {
       throw new Error("Product not found");
     }
 
-    console.log("Product data loaded for seller comparison:", product.title_fa);
-
     // Check multiple places where seller variants might be stored
     const variants = product.variants || [];
     const variantsWithPrice = product.variants_with_price || [];
     const sellers = product.sellers || [];
     const allSellers = product.all_sellers || [];
 
-    console.log("Checking different seller data sources:");
-    console.log("- variants:", variants.length);
-    console.log("- variants_with_price:", variantsWithPrice.length);
-    console.log("- sellers:", sellers.length);
-    console.log("- all_sellers:", allSellers.length);
-    console.log(
-      "- default_variant:",
-      product.default_variant ? "exists" : "missing"
-    );
-
-    // Log available keys in product object
-    console.log("Available product keys:", Object.keys(product));
-
-    // Check if there's seller information in other places
-    if (product.sellers_summary) {
-      console.log("sellers_summary:", product.sellers_summary);
-    }
-    if (product.multi_seller) {
-      console.log("multi_seller:", product.multi_seller);
-    }
-    if (product.marketplace) {
-      console.log("marketplace:", product.marketplace);
-    }
-
     // Try different sources for multiple sellers
     let allSellerVariants = [];
 
-    // Check variants first
-    if (variants.length > 1) {
-      console.log("Using variants source");
-      allSellerVariants = variants;
-    } else if (variantsWithPrice.length > 1) {
-      console.log("Using variants_with_price source");
-      allSellerVariants = variantsWithPrice;
-    } else if (sellers.length > 1) {
-      console.log("Using sellers source");
-      allSellerVariants = sellers;
-    } else if (allSellers.length > 1) {
-      console.log("Using all_sellers source");
-      allSellerVariants = allSellers;
-    }
-
     if (allSellerVariants.length > 1) {
-      console.log(`Processing ${allSellerVariants.length} seller variants`);
-
       // Map the variants to our format
       const sellerResults = allSellerVariants
         .filter((variant) => {
@@ -352,16 +317,6 @@ async function getProductCPC(productId) {
           const size =
             variant.size ||
             variant.themes?.find((t) => t.type === "text")?.value;
-
-          console.log("Processing variant:", {
-            id: variant.id,
-            seller: seller.title || seller.name,
-            sellerCode: seller.code,
-            color: color ? color.title || color.name || color : null,
-            size: size ? size.title || size.name || size : null,
-            price: price,
-            originalPrice: originalPrice,
-          });
 
           // Build variant description for display
           let variantDescription = "";
@@ -430,29 +385,14 @@ async function getProductCPC(productId) {
         .sort((a, b) => a.price - b.price);
 
       if (sellerResults.length > 1) {
-        console.log(
-          `Found ${sellerResults.length} different sellers for the same product`
-        );
-        console.log(
-          "Seller results:",
-          sellerResults.map((s) => ({ seller: s.seller, price: s.price }))
-        );
         return sellerResults;
-      } else {
-        console.log(
-          `Only found ${sellerResults.length} valid seller(s), falling back to single seller`
-        );
       }
     }
 
     // Fallback: Try using search API to find multiple sellers for this product
-    console.log("Attempting fallback search for multiple sellers");
     try {
       const productTitle = product.title_fa || product.title_en || "";
       if (productTitle) {
-        console.log(
-          `Searching for multiple sellers using title: "${productTitle}"`
-        );
         const searchResults = await searchPricesAPI(productTitle);
 
         // Helper function to calculate title similarity
@@ -469,9 +409,6 @@ async function getProductCPC(productId) {
             const similarity = calculateTitleSimilarity(
               productTitle.toLowerCase(),
               (result.title || "").toLowerCase()
-            );
-            console.log(
-              `Comparing "${productTitle}" vs "${result.title}" - similarity: ${similarity}`
             );
             return similarity > 0.7 || result.productId === product.id;
           })
@@ -496,17 +433,6 @@ async function getProductCPC(productId) {
           });
 
         if (sameProductResults.length > 1) {
-          console.log(
-            `Found ${sameProductResults.length} sellers via search API`
-          );
-          console.log(
-            "Search-based seller results:",
-            sameProductResults.map((s) => ({
-              seller: s.seller,
-              price: s.price,
-              url: s.url,
-            }))
-          );
           return sameProductResults.sort((a, b) => a.price - b.price);
         }
       }
@@ -627,7 +553,6 @@ async function searchTorobAPI(query, page = 1) {
     const products = data.results || [];
 
     const results = products.slice(0, 10).map((product) => {
-
       const price = product.price || 0;
       const shop_text = product.shop_text || "";
 
@@ -733,19 +658,19 @@ async function getTorobProductDetails(productKey) {
 async function loadMoreResults(query, platform, page) {
   try {
     let results;
-    
-    if (platform === 'digikala') {
+
+    if (platform === "digikala") {
       results = await searchPricesAPI(query, page);
-    } else if (platform === 'torob') {
+    } else if (platform === "torob") {
       results = await searchTorobAPI(query, page);
     } else {
-      throw new Error('Invalid platform specified');
+      throw new Error("Invalid platform specified");
     }
-    
+
     return {
       platform: platform,
       page: page,
-      data: results || []
+      data: results || [],
     };
   } catch (error) {
     console.error(`Error loading more ${platform} results:`, error);
@@ -758,22 +683,26 @@ function getProductImage(product) {
   // Try different image sources in order of preference
   const imageSources = [
     product.images?.main?.url?.[0],
-    product.images?.main?.url?.[1], 
+    product.images?.main?.url?.[1],
     product.images?.list?.[0]?.image?.url?.[0],
     product.images?.list?.[0]?.image?.url?.[1],
     product.images?.list?.[0]?.url?.[0],
     product.images?.list?.[1]?.image?.url?.[0],
     product.default_variant?.images?.main?.url?.[0],
-    product.default_variant?.images?.list?.[0]?.image?.url?.[0]
+    product.default_variant?.images?.list?.[0]?.image?.url?.[0],
   ];
-  
+
   // Return the first valid image URL
   for (const imageUrl of imageSources) {
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+    if (
+      imageUrl &&
+      typeof imageUrl === "string" &&
+      imageUrl.startsWith("http")
+    ) {
       return imageUrl;
     }
   }
-  
+
   return "";
 }
 
@@ -785,4 +714,3 @@ function generateRandomId() {
     return v.toString(16);
   });
 }
-
