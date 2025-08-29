@@ -1,12 +1,12 @@
 document.addEventListener("DOMContentLoaded", async function () {
   // Firefox compatibility - use browser API if available, otherwise use chrome
   const browserAPI = typeof browser !== "undefined" ? browser : chrome;
-  
+
   // Helper function to safely create DOM elements with attributes and text
-  function createElement(tag, attributes = {}, textContent = '') {
+  function createElement(tag, attributes = {}, textContent = "") {
     const element = document.createElement(tag);
     Object.entries(attributes).forEach(([key, value]) => {
-      if (key === 'style') {
+      if (key === "style") {
         element.style.cssText = value;
       } else {
         element.setAttribute(key, value);
@@ -22,46 +22,68 @@ document.addEventListener("DOMContentLoaded", async function () {
     let modal = document.getElementById("seller-modal");
     if (!modal) {
       modal = createElement("div", { id: "seller-modal" });
-      
+
       // Create modal overlay
       const overlay = createElement("div", {
-        style: "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.25); z-index: 9999; display: flex; align-items: center; justify-content: center;"
+        style:
+          "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.25); z-index: 9999; display: flex; align-items: center; justify-content: center;",
       });
-      
+
       // Create modal content
       const content = createElement("div", {
-        style: "background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(25,191,211,0.15); padding: 32px 24px; max-width: 340px; text-align: center; position: relative;"
+        style:
+          "background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(25,191,211,0.15); padding: 32px 24px; max-width: 340px; text-align: center; position: relative;",
       });
-      
+
       // Close button
-      const closeBtn = createElement("button", {
-        id: "closeSellerModal",
-        style: "position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 20px; color: #888; cursor: pointer;"
-      }, "×");
-      
+      const closeBtn = createElement(
+        "button",
+        {
+          id: "closeSellerModal",
+          style:
+            "position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 20px; color: #888; cursor: pointer;",
+        },
+        "×"
+      );
+
       // Title
-      const title = createElement("div", {
-        style: "font-size: 18px; font-weight: bold; color: #19bfd3; margin-bottom: 12px;"
-      }, "خرید از فروشنده دیگر");
-      
+      const title = createElement(
+        "div",
+        {
+          style:
+            "font-size: 18px; font-weight: bold; color: #19bfd3; margin-bottom: 12px;",
+        },
+        "خرید از فروشنده دیگر"
+      );
+
       // Description
       const desc = createElement("div", {
-        style: "font-size: 15px; color: #424750; margin-bottom: 18px;"
+        style: "font-size: 15px; color: #424750; margin-bottom: 18px;",
       });
       desc.appendChild(document.createTextNode("شما در همین صفحه هستید."));
       desc.appendChild(createElement("br"));
       desc.appendChild(document.createTextNode("برای خرید از فروشنده "));
-      const sellerSpan = createElement("span", {
-        style: "color:#e6123d;font-weight:bold;"
-      }, sellerName);
+      const sellerSpan = createElement(
+        "span",
+        {
+          style: "color:#e6123d;font-weight:bold;",
+        },
+        sellerName
+      );
       desc.appendChild(sellerSpan);
-      desc.appendChild(document.createTextNode("، باید محصول را به سبد خرید اضافه کنید."));
-      
+      desc.appendChild(
+        document.createTextNode("، باید محصول را به سبد خرید اضافه کنید.")
+      );
+
       // Footer
-      const footer = createElement("div", {
-        style: "font-size: 13px; color: #81858b;"
-      }, "در صورت نیاز، فروشنده را از لیست فروشندگان انتخاب کنید.");
-      
+      const footer = createElement(
+        "div",
+        {
+          style: "font-size: 13px; color: #81858b;",
+        },
+        "در صورت نیاز، فروشنده را از لیست فروشندگان انتخاب کنید."
+      );
+
       // Assemble modal
       content.appendChild(closeBtn);
       content.appendChild(title);
@@ -69,7 +91,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       content.appendChild(footer);
       overlay.appendChild(content);
       modal.appendChild(overlay);
-      
+
       document.body.appendChild(modal);
       closeBtn.onclick = function () {
         modal.remove();
@@ -103,7 +125,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           // Ignore if background script can't receive the message
         });
     } catch (e) {
-      console.log("Could not log to background page:", e);
+      // Silently handle logging errors
     }
   }
 
@@ -178,10 +200,6 @@ document.addEventListener("DOMContentLoaded", async function () {
               };
             }
           } catch (apiError) {
-            console.log(
-              "Could not get Digikala API product details:",
-              apiError
-            );
             logToBackground("Digikala API product details error:", apiError);
           }
         } else if (
@@ -209,14 +227,16 @@ document.addEventListener("DOMContentLoaded", async function () {
               };
             }
           } catch (apiError) {
-            console.log("Could not get Torob API product details:", apiError);
             logToBackground("Torob API product details error:", apiError);
           }
         }
 
         productName.textContent =
           currentProductData.name || currentProductData.title;
-        currentPrice.textContent = formatPrice(currentProductData.price);
+        currentPrice.textContent = formatPrice(
+          currentProductData.price,
+          currentProductData.platform
+        );
 
         // Display product image if available
         const productImage = document.getElementById("productImage");
@@ -240,7 +260,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         currentProduct.style.display = "block";
       }
     } catch (error) {
-      console.log("Could not get product info:", error);
       logToBackground("Product info error:", error);
     }
   } else {
@@ -280,7 +299,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       }
     } catch (error) {
-      console.log("Could not get universal product detection:", error);
       logToBackground("Universal product detection error:", error);
     }
   }
@@ -379,26 +397,26 @@ document.addEventListener("DOMContentLoaded", async function () {
       const content = createElement("div", { class: "skeleton-content" });
       const image = createElement("div", { class: "skeleton-image" });
       const details = createElement("div", { class: "skeleton-details" });
-      const title = createElement("div", { 
-        class: index % 2 === 0 ? "skeleton-title short" : "skeleton-title" 
+      const title = createElement("div", {
+        class: index % 2 === 0 ? "skeleton-title short" : "skeleton-title",
       });
       const seller = createElement("div", { class: "skeleton-seller" });
       const price = createElement("div", { class: "skeleton-price" });
-      
+
       details.appendChild(title);
       details.appendChild(seller);
       details.appendChild(price);
       content.appendChild(image);
       content.appendChild(details);
       item.appendChild(content);
-      
+
       return item;
     }
 
     // Clear and populate containers
-    digikalaResults.textContent = '';
-    torobResults.textContent = '';
-    
+    digikalaResults.textContent = "";
+    torobResults.textContent = "";
+
     for (let i = 0; i < 3; i++) {
       digikalaResults.appendChild(createSkeletonItem(i));
       torobResults.appendChild(createSkeletonItem(i));
@@ -406,7 +424,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Add loading state to search button
     searchBtn.disabled = true;
-    searchBtn.textContent = 'جستجو';
+    searchBtn.textContent = "جستجو";
     const loadingDots = createElement("span", { class: "loading-dots" });
     searchBtn.appendChild(loadingDots);
   }
@@ -417,8 +435,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     searchBtn.textContent = "جستجو";
 
     const errorDiv = createElement("div", { class: "error-state" }, message);
-    digikalaResults.textContent = '';
-    torobResults.textContent = '';
+    digikalaResults.textContent = "";
+    torobResults.textContent = "";
     digikalaResults.appendChild(errorDiv.cloneNode(true));
     torobResults.appendChild(errorDiv);
   }
@@ -429,9 +447,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     searchBtn.textContent = "جستجو";
 
     if (!data) {
-      const emptyDiv = createElement("div", { class: "empty-state" }, "نتیجه‌ای یافت نشد");
-      digikalaResults.textContent = '';
-      torobResults.textContent = '';
+      const emptyDiv = createElement(
+        "div",
+        { class: "empty-state" },
+        "نتیجه‌ای یافت نشد"
+      );
+      digikalaResults.textContent = "";
+      torobResults.textContent = "";
       digikalaResults.appendChild(emptyDiv.cloneNode(true));
       torobResults.appendChild(emptyDiv);
       return;
@@ -448,8 +470,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         "digikala"
       );
       // Clear container and add DOM elements
-      digikalaResults.textContent = '';
-      digikalaElements.forEach(element => {
+      digikalaResults.textContent = "";
+      digikalaElements.forEach((element) => {
         digikalaResults.appendChild(element);
       });
 
@@ -463,9 +485,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
       }, 100);
     } else {
-      const errorDiv = createElement("div", { class: "error-state" }, 
-        data.digikala?.error || "نتیجه‌ای در دیجیکالا یافت نشد");
-      digikalaResults.textContent = '';
+      const errorDiv = createElement(
+        "div",
+        { class: "error-state" },
+        data.digikala?.error || "نتیجه‌ای در دیجیکالا یافت نشد"
+      );
+      digikalaResults.textContent = "";
       digikalaResults.appendChild(errorDiv);
     }
 
@@ -473,8 +498,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (data.torob && data.torob.success && data.torob.data.length > 0) {
       const torobElements = renderPlatformResults(data.torob.data, "torob");
       // Clear container and add DOM elements
-      torobResults.textContent = '';
-      torobElements.forEach(element => {
+      torobResults.textContent = "";
+      torobElements.forEach((element) => {
         torobResults.appendChild(element);
       });
 
@@ -488,9 +513,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
       }, 100);
     } else {
-      const errorDiv = createElement("div", { class: "error-state" }, 
-        data.torob?.error || "نتیجه‌ای در ترب یافت نشد");
-      torobResults.textContent = '';
+      const errorDiv = createElement(
+        "div",
+        { class: "error-state" },
+        data.torob?.error || "نتیجه‌ای در ترب یافت نشد"
+      );
+      torobResults.textContent = "";
       torobResults.appendChild(errorDiv);
     }
 
@@ -500,7 +528,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   function renderPlatformResults(items, platform) {
     if (!items || items.length === 0) {
-      return [createElement("div", { class: "empty-state" }, "نتیجه‌ای یافت نشد")];
+      return [
+        createElement("div", { class: "empty-state" }, "نتیجه‌ای یافت نشد"),
+      ];
     }
 
     const elements = [];
@@ -513,75 +543,105 @@ document.addEventListener("DOMContentLoaded", async function () {
       const productItem = createElement("div", {
         class: "product-item",
         "data-url": item.url,
-        "data-platform": platform
+        "data-platform": platform,
       });
 
       // Create content container
       const content = createElement("div", { class: "product-item-content" });
 
       // Create image container
-      const imageContainer = createElement("div", { class: "product-item-image" });
-      
+      const imageContainer = createElement("div", {
+        class: "product-item-image",
+      });
+
       if (item.image && item.image.trim()) {
         const img = createElement("img", {
           src: item.image,
           alt: "تصویر محصول",
-          class: "search-result-image"
+          class: "search-result-image",
         });
-        
-        const placeholder = createElement("div", {
-          class: "search-result-image-placeholder",
-          style: "display: none;"
-        }, "🖼️");
-        
+
+        const placeholder = createElement(
+          "div",
+          {
+            class: "search-result-image-placeholder",
+            style: "display: none;",
+          },
+          "🖼️"
+        );
+
         // Handle image error
-        img.onerror = function() {
-          this.style.display = 'none';
-          placeholder.style.display = 'flex';
+        img.onerror = function () {
+          this.style.display = "none";
+          placeholder.style.display = "flex";
         };
-        
+
         imageContainer.appendChild(img);
         imageContainer.appendChild(placeholder);
       } else {
-        const placeholder = createElement("div", {
-          class: "search-result-image-placeholder"
-        }, "🖼️");
+        const placeholder = createElement(
+          "div",
+          {
+            class: "search-result-image-placeholder",
+          },
+          "🖼️"
+        );
         imageContainer.appendChild(placeholder);
       }
 
       // Create details container
       const details = createElement("div", { class: "product-item-details" });
-      
+
       // Product title
-      const title = createElement("div", { class: "product-title" }, 
-        item.title || item.name || "محصول نامشخص");
-      
+      const title = createElement(
+        "div",
+        { class: "product-title" },
+        item.title || item.name || "محصول نامشخص"
+      );
+
       // Seller container
       const sellerContainer = createElement("div", { class: "product-seller" });
-      
+
       const sellerInfo = createElement("div", {
-        style: "font-size: 12px; color: #718096; margin-bottom: 8px;"
+        style: "font-size: 12px; color: #718096; margin-bottom: 8px;",
       });
-      sellerInfo.appendChild(document.createTextNode(item.seller));
-      
+      // Format seller display - add text for numbers
+      // Check for both ASCII and Persian numbers
+      const isNumber = /^[\d۰-۹]+$/.test(item.seller);
+      const displaySeller = isNumber
+        ? `تعداد فروشنده ${item.seller}` 
+        : item.seller;
+      sellerInfo.appendChild(document.createTextNode(displaySeller));
+
       if (rankBadge) {
-        const badge = createElement("span", {
-          style: "margin-right: 4px;"
-        }, rankBadge);
+        const badge = createElement(
+          "span",
+          {
+            style: "margin-right: 4px;",
+          },
+          rankBadge
+        );
         sellerInfo.appendChild(badge);
       }
-      
-      const rating = createElement("div", {
-        style: "font-size: 11px; color: #a0aec0;"
-      }, `⭐ ${(item.sellerRating || item.rating || 4.0).toFixed(1)}`);
-      
+
+      const rating = createElement(
+        "div",
+        {
+          style: "font-size: 11px; color: #a0aec0;",
+        },
+        `⭐ ${(item.sellerRating || item.rating || 4.0).toFixed(1)}`
+      );
+
       sellerContainer.appendChild(sellerInfo);
       sellerContainer.appendChild(rating);
-      
+
       // Price
-      const price = createElement("div", { class: "product-price" }, 
-        formatPrice(item.price, platform));
-      
+      const price = createElement(
+        "div",
+        { class: "product-price" },
+        formatPrice(item.price, platform)
+      );
+
       // Assemble the structure
       details.appendChild(title);
       details.appendChild(sellerContainer);
@@ -589,7 +649,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       content.appendChild(imageContainer);
       content.appendChild(details);
       productItem.appendChild(content);
-      
+
       elements.push(productItem);
     });
 
@@ -683,16 +743,13 @@ document.addEventListener("DOMContentLoaded", async function () {
                       await browserAPI.tabs.sendMessage(newTab.id, {
                         action: "applyWidthFix",
                       });
-                      console.log("Width fix message sent to Torob tab");
+                      // Width fix message sent successfully
                     } catch (messageError) {
-                      console.log(
-                        "Could not send width fix message:",
-                        messageError
-                      );
+                      // Silently handle width fix message errors
                     }
                   }, 1000); // Wait for page to load
                 } catch (focusError) {
-                  console.log("Could not focus Torob tab:", focusError);
+                  // Silently handle Torob tab focus errors
                 }
               }, 200);
             }
@@ -804,7 +861,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         // Update display with new results
         const container =
           platform === "digikala" ? digikalaResults : torobResults;
-        const newResultElements = renderPlatformResults(response.data.data, platform);
+        const newResultElements = renderPlatformResults(
+          response.data.data,
+          platform
+        );
 
         // Remove loading indicator and append new results
         removeLoadingMore(platform);
@@ -828,21 +888,25 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Show loading indicator at bottom of platform results
   function showLoadingMore(platform) {
     const container = platform === "digikala" ? digikalaResults : torobResults;
-    
-    const loadingDiv = createElement("div", { 
-      class: "loading-more", 
-      id: `${platform}LoadingMore` 
+
+    const loadingDiv = createElement("div", {
+      class: "loading-more",
+      id: `${platform}LoadingMore`,
     });
-    
-    const spinner = createElement("div", { 
+
+    const spinner = createElement("div", {
       class: "loading-spinner",
-      style: "width: 20px; height: 20px; margin: 16px auto;" 
+      style: "width: 20px; height: 20px; margin: 16px auto;",
     });
-    
-    const text = createElement("div", {
-      style: "text-align: center; font-size: 12px; color: #718096;"
-    }, "در حال بارگذاری...");
-    
+
+    const text = createElement(
+      "div",
+      {
+        style: "text-align: center; font-size: 12px; color: #718096;",
+      },
+      "در حال بارگذاری..."
+    );
+
     loadingDiv.appendChild(spinner);
     loadingDiv.appendChild(text);
     container.appendChild(loadingDiv);
@@ -859,7 +923,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Append new results to container
   function appendResults(container, newResultElements) {
     // Append each new result element
-    newResultElements.forEach(element => {
+    newResultElements.forEach((element) => {
       container.appendChild(element);
     });
   }
@@ -883,75 +947,93 @@ document.addEventListener("DOMContentLoaded", async function () {
     subtitle.textContent = `در ${site.hostname} محصولات زیر پیدا کردیم`;
 
     // Render detected products using DOM methods
-    detectedProductsList.textContent = ''; // Clear existing products
-    
+    detectedProductsList.textContent = ""; // Clear existing products
+
     products.slice(0, 5).forEach((product) => {
       // Create main item container
-      const item = createElement("div", { 
+      const item = createElement("div", {
         class: "detected-product-item",
-        "data-product-name": product.name
+        "data-product-name": product.name,
       });
-      
+
       // Create content container
-      const content = createElement("div", { class: "detected-product-content" });
-      
+      const content = createElement("div", {
+        class: "detected-product-content",
+      });
+
       // Create image container
-      const imageDiv = createElement("div", { class: "detected-product-image" });
-      
+      const imageDiv = createElement("div", {
+        class: "detected-product-image",
+      });
+
       if (product.image && product.image.trim()) {
         // Create img element
         const img = createElement("img", {
           src: product.image,
           alt: "تصویر محصول",
-          class: "search-result-image"
+          class: "search-result-image",
         });
-        
+
         // Create placeholder that will show on error
-        const placeholder = createElement("div", {
-          class: "search-result-image-placeholder",
-          style: "display: none;"
-        }, "🖼️");
-        
+        const placeholder = createElement(
+          "div",
+          {
+            class: "search-result-image-placeholder",
+            style: "display: none;",
+          },
+          "🖼️"
+        );
+
         // Handle image load error
-        img.onerror = function() {
-          this.style.display = 'none';
-          placeholder.style.display = 'flex';
+        img.onerror = function () {
+          this.style.display = "none";
+          placeholder.style.display = "flex";
         };
-        
+
         imageDiv.appendChild(img);
         imageDiv.appendChild(placeholder);
       } else {
         // Just show placeholder
-        const placeholder = createElement("div", {
-          class: "search-result-image-placeholder"
-        }, "🖼️");
+        const placeholder = createElement(
+          "div",
+          {
+            class: "search-result-image-placeholder",
+          },
+          "🖼️"
+        );
         imageDiv.appendChild(placeholder);
       }
-      
+
       // Create details container
-      const details = createElement("div", { class: "detected-product-details" });
-      
+      const details = createElement("div", {
+        class: "detected-product-details",
+      });
+
       // Product name
-      const name = createElement("div", { class: "detected-product-name" }, product.name);
-      
+      const name = createElement(
+        "div",
+        { class: "detected-product-name" },
+        product.name
+      );
+
       // Source container
       const source = createElement("div", { class: "detected-product-source" });
       const sourceText = createElement("div", {}, `از ${site.hostname}`);
       source.appendChild(sourceText);
-      
+
       // Add price if available
       if (product.price) {
         const priceDiv = createElement("div", {}, formatPrice(product.price));
         source.appendChild(priceDiv);
       }
-      
+
       // Assemble the structure
       details.appendChild(name);
       details.appendChild(source);
       content.appendChild(imageDiv);
       content.appendChild(details);
       item.appendChild(content);
-      
+
       detectedProductsList.appendChild(item);
     });
     detectedProducts.style.display = "block";
@@ -979,7 +1061,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         searchState: searchState,
         results: results,
         timestamp: Date.now(),
-        version: "2.0",
+        version: "0.1",
       };
 
       await browserAPI.storage.local.set({
@@ -1000,7 +1082,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       const persistData = stored.persistedSearchResults;
 
       if (!persistData || !persistData.searchState || !persistData.results) {
-        console.log("[popup.js] No valid persisted data found");
+        return;
+      }
+
+      // Clear old cache if version doesn't match (for updates)
+      if (!persistData.version || persistData.version !== "0.1") {
+        await browserAPI.storage.local.remove(["persistedSearchResults"]);
         return;
       }
 

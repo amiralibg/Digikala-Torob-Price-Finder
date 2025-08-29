@@ -2,7 +2,7 @@
 const runtimeAPI = typeof browser !== "undefined" ? browser : chrome;
 
 runtimeAPI.runtime.onInstalled.addListener(() => {
-  // console.log("Digikala & Torob Price Finder extension installed");
+  // Extension installed successfully
 });
 
 // Handle extension icon click (browserAction for Manifest V2)
@@ -24,10 +24,10 @@ runtimeAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     runtimeAPI.tabs
       .sendMessage(tabId, { action: "ping" })
       .then((response) => {
-        // console.log("[Firefox Background] Content script ping successful:", response);
+        // Content script ping successful
       })
       .catch(() => {
-        // console.log("[Firefox Background] Content script not responding, attempting injection");
+        // Content script not responding, attempting injection
 
         // Try to inject content script programmatically as fallback
         runtimeAPI.tabs
@@ -36,7 +36,7 @@ runtimeAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
             runAt: "document_end",
           })
           .then(() => {
-            // console.log("[Firefox Background] Content script injected successfully");
+            // Content script injected successfully
             // Also inject CSS
             runtimeAPI.tabs.insertCSS(tabId, {
               file: "src/css/content.css",
@@ -95,7 +95,7 @@ runtimeAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   } else if (request.action === "log") {
     // Handle log messages from popup
-    // console.log(request.message);
+    // Log message handled
     return false; // No response needed
   }
 });
@@ -118,7 +118,6 @@ async function searchPricesAPI(query, page = 1) {
     const products = searchData.data?.products || [];
 
     const results = products
-      .slice(0, 5)
       .map((product) => {
         const price =
           product.default_variant?.price?.selling_price ||
@@ -150,7 +149,14 @@ async function searchPricesAPI(query, page = 1) {
           isOfficial: seller.properties?.is_official || false,
         };
       })
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => {
+        // Put products with price 0 at bottom
+        if (a.price === 0 && b.price === 0) return 0;
+        if (a.price === 0) return 1;
+        if (b.price === 0) return -1;
+        return a.price - b.price;
+      })
+      .slice(0, 5);
 
     return results;
   } catch (error) {
@@ -174,7 +180,6 @@ async function searchPricesAPI(query, page = 1) {
       const products = searchData.data?.products || [];
 
       return products
-        .slice(0, 5)
         .map((product) => {
           const price =
             product.default_variant?.price?.selling_price ||
@@ -198,7 +203,14 @@ async function searchPricesAPI(query, page = 1) {
             isOfficial: seller.properties?.is_official || false,
           };
         })
-        .sort((a, b) => a.price - b.price);
+        .sort((a, b) => {
+          // Put products with price 0 at bottom
+          if (a.price === 0 && b.price === 0) return 0;
+          if (a.price === 0) return 1;
+          if (b.price === 0) return -1;
+          return a.price - b.price;
+        })
+        .slice(0, 5);
     } catch (fallbackError) {
       console.error(
         "Digikala API: Fallback search also failed:",
@@ -382,7 +394,13 @@ async function getProductCPC(productId) {
             ) === index
           );
         })
-        .sort((a, b) => a.price - b.price);
+        .sort((a, b) => {
+          // Put products with price 0 at bottom
+          if (a.price === 0 && b.price === 0) return 0;
+          if (a.price === 0) return 1;
+          if (b.price === 0) return -1;
+          return a.price - b.price;
+        });
 
       if (sellerResults.length > 1) {
         return sellerResults;
@@ -433,11 +451,17 @@ async function getProductCPC(productId) {
           });
 
         if (sameProductResults.length > 1) {
-          return sameProductResults.sort((a, b) => a.price - b.price);
+          return sameProductResults.sort((a, b) => {
+            // Put products with price 0 at bottom
+            if (a.price === 0 && b.price === 0) return 0;
+            if (a.price === 0) return 1;
+            if (b.price === 0) return -1;
+            return a.price - b.price;
+          });
         }
       }
     } catch (searchError) {
-      console.log("Search fallback failed:", searchError);
+      // Search fallback failed
     }
 
     // If no multiple sellers found, return the single default variant with a note
@@ -533,7 +557,7 @@ async function searchTorobAPI(query, page = 1) {
         searchQuery = suggestions[0].text || query;
       }
     } catch (suggestError) {
-      console.log("Suggestion API failed, using original query");
+      // Suggestion API failed, using original query
     }
 
     // Search for products
@@ -552,36 +576,51 @@ async function searchTorobAPI(query, page = 1) {
     const data = await response.json();
     const products = data.results || [];
 
-    const results = products.slice(0, 10).map((product) => {
-      const price = product.price || 0;
-      const shop_text = product.shop_text || "";
+    const results = products
+      .map((product) => {
+        const price = product.price || 0;
+        const shop_text = product.shop_text || "";
 
-      return {
-        productId: product.random_key,
-        productKey: product.random_key,
-        seller:
-          shop_text
-            .replace("در ", "")
-            .replace(" فروشگاه", "")
-            .replace("فروشگاه", "")
-            .trim() || "نامشخص",
-        sellerCount: shop_text.match(/\d+/)
-          ? parseInt(shop_text.match(/\d+/)[0])
-          : 1,
-        sellerRating: 4.0, // Torob doesn't provide detailed seller ratings
-        price: price * 10, // Convert Toman to Rial for consistency
-        originalPrice: price * 10,
-        rating: 4.0,
-        title: product.name1 || product.name2 || "محصول نامشخص",
-        url: `https://torob.com${product.web_client_absolute_url}`,
-        image: product.image_url || "",
-        discount: 0,
-        platform: "torob",
-        stock_status: product.stock_status || "",
-        estimated_sell: product.estimated_sell || "",
-        shop_text: shop_text,
-      };
-    });
+        return {
+          productId: product.random_key,
+          productKey: product.random_key,
+          seller: (() => {
+            const cleanedSeller = shop_text
+              .replace("در ", "")
+              .replace(" فروشگاه", "")
+              .replace("فروشگاه", "")
+              .trim() || "نامشخص";
+            // If seller is just a number, add descriptive text
+            if (/^\d+$/.test(cleanedSeller)) {
+              return `${cleanedSeller} عدد فروشنده`;
+            }
+            return cleanedSeller;
+          })(),
+          sellerCount: shop_text.match(/\d+/)
+            ? parseInt(shop_text.match(/\d+/)[0])
+            : 1,
+          sellerRating: 4.0, // Torob doesn't provide detailed seller ratings
+          price: price * 10, // Convert Toman to Rial for consistency
+          originalPrice: price * 10,
+          rating: 4.0,
+          title: product.name1 || product.name2 || "محصول نامشخص",
+          url: `https://torob.com${product.web_client_absolute_url}`,
+          image: product.image_url || "",
+          discount: 0,
+          platform: "torob",
+          stock_status: product.stock_status || "",
+          estimated_sell: product.estimated_sell || "",
+          shop_text: shop_text,
+        };
+      })
+      .sort((a, b) => {
+        // Put products with price 0 at bottom
+        if (a.price === 0 && b.price === 0) return 0;
+        if (a.price === 0) return 1;
+        if (b.price === 0) return -1;
+        return a.price - b.price;
+      })
+      .slice(0, 10);
 
     return results;
   } catch (error) {
@@ -632,7 +671,13 @@ async function getTorobProductDetails(productKey) {
         rank: index + 1,
       }))
       .filter((seller) => !seller.is_price_unreliable && seller.availability)
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => {
+        // Put products with price 0 at bottom
+        if (a.price === 0 && b.price === 0) return 0;
+        if (a.price === 0) return 1;
+        if (b.price === 0) return -1;
+        return a.price - b.price;
+      });
 
     return {
       id: productKey,

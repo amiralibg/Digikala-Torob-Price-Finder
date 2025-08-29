@@ -1,6 +1,6 @@
 // Background script for the Chrome extension
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Digikala & Torob Price Finder extension installed");
+  // Extension installed successfully
 });
 
 // Handle extension icon click
@@ -31,7 +31,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true; // Indicates we will send a response asynchronously
   } else if (request.action === "searchBothPlatforms") {
-    searchBothPlatforms(request.query, request.digikalaPage || 1, request.torobPage || 1)
+    searchBothPlatforms(
+      request.query,
+      request.digikalaPage || 1,
+      request.torobPage || 1
+    )
       .then((results) => sendResponse({ success: true, data: results }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
@@ -62,7 +66,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   } else if (request.action === "log") {
     // Handle log messages from popup
-    console.log(request.message);
+    // Log messages silently handled
     return false; // No response needed
   }
 });
@@ -70,27 +74,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Function to search prices using real Digikala API
 async function searchPricesAPI(query, page = 1) {
   try {
-    console.log('Digikala API: Starting direct search for query:', query, 'page:', page);
+    // Search for products directly using Digikala API
+    const searchUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(
+      query
+    )}&page=${page}`;
 
-    // Search for products directly (skip autocomplete for now)
-    const searchUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(query)}&page=${page}`;
-    console.log('Digikala API: Search URL:', searchUrl);
-    
     const searchResponse = await fetch(searchUrl);
-    console.log('Digikala API: Search response status:', searchResponse.status);
-    
+
     if (!searchResponse.ok) {
       throw new Error(`Search API returned status ${searchResponse.status}`);
     }
-    
+
     const searchData = await searchResponse.json();
-    console.log('Digikala API: Search data structure:', Object.keys(searchData));
 
     // Extract product data and format for our needs
     const products = searchData.data?.products || [];
 
     const results = products
-      .slice(0, 5)
       .map((product) => {
         const price =
           product.default_variant?.price?.selling_price ||
@@ -122,32 +122,36 @@ async function searchPricesAPI(query, page = 1) {
           isOfficial: seller.properties?.is_official || false,
         };
       })
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => {
+        // Put products with price 0 at bottom
+        if (a.price === 0 && b.price === 0) return 0;
+        if (a.price === 0) return 1;
+        if (b.price === 0) return -1;
+        return a.price - b.price;
+      })
+      .slice(0, 5);
 
-    console.log('Digikala API: Returning', results.length, 'results');
     return results;
   } catch (error) {
-    console.error("Digikala API: Error in main search:", error);
-    // Fallback to basic search if autocomplete fails
+    // Fallback to basic search if main search fails
     try {
-      console.log('Digikala API: Attempting fallback search');
-      const fallbackUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(query)}&page=${page}`;
-      console.log('Digikala API: Fallback URL:', fallbackUrl);
-      
+      const fallbackUrl = `https://api.digikala.com/v1/search/?q=${encodeURIComponent(
+        query
+      )}&page=${page}`;
+
       const searchResponse = await fetch(fallbackUrl);
-      console.log('Digikala API: Fallback response status:', searchResponse.status);
-      
+
       if (!searchResponse.ok) {
-        throw new Error(`Fallback search API returned status ${searchResponse.status}`);
+        throw new Error(
+          `Fallback search API returned status ${searchResponse.status}`
+        );
       }
-      
+
       const searchData = await searchResponse.json();
-      console.log('Digikala API: Fallback data structure:', Object.keys(searchData));
 
       const products = searchData.data?.products || [];
 
       return products
-        .slice(0, 5)
         .map((product) => {
           const price =
             product.default_variant?.price?.selling_price ||
@@ -171,9 +175,15 @@ async function searchPricesAPI(query, page = 1) {
             isOfficial: seller.properties?.is_official || false,
           };
         })
-        .sort((a, b) => a.price - b.price);
+        .sort((a, b) => {
+          // Put products with price 0 at bottom
+          if (a.price === 0 && b.price === 0) return 0;
+          if (a.price === 0) return 1;
+          if (b.price === 0) return -1;
+          return a.price - b.price;
+        })
+        .slice(0, 5);
     } catch (fallbackError) {
-      console.error("Digikala API: Fallback search also failed:", fallbackError);
       throw new Error("جستجو با خطا مواجه شد");
     }
   }
@@ -229,7 +239,6 @@ async function getDigikalaProductDetails(productId) {
       description: product.review?.description || "",
     };
   } catch (error) {
-    console.error("Error fetching product details:", error);
     throw new Error("خطا در دریافت اطلاعات محصول");
   }
 }
@@ -253,58 +262,30 @@ async function getProductCPC(productId) {
       throw new Error("Product not found");
     }
 
-    console.log("Product data loaded for seller comparison:", product.title_fa);
-
     // Check multiple places where seller variants might be stored
     const variants = product.variants || [];
     const variantsWithPrice = product.variants_with_price || [];
     const sellers = product.sellers || [];
     const allSellers = product.all_sellers || [];
 
-    console.log("Checking different seller data sources:");
-    console.log("- variants:", variants.length);
-    console.log("- variants_with_price:", variantsWithPrice.length);
-    console.log("- sellers:", sellers.length);
-    console.log("- all_sellers:", allSellers.length);
-    console.log(
-      "- default_variant:",
-      product.default_variant ? "exists" : "missing"
-    );
-
-    // Log available keys in product object
-    console.log("Available product keys:", Object.keys(product));
-
-    // Check if there's seller information in other places
-    if (product.sellers_summary) {
-      console.log("sellers_summary:", product.sellers_summary);
-    }
-    if (product.multi_seller) {
-      console.log("multi_seller:", product.multi_seller);
-    }
-    if (product.marketplace) {
-      console.log("marketplace:", product.marketplace);
-    }
+    // Check different seller data sources and available product keys
 
     // Try different sources for multiple sellers
     let allSellerVariants = [];
 
-    // Check variants first
+    // Check variants first, then try other sources
     if (variants.length > 1) {
-      console.log("Using variants source");
       allSellerVariants = variants;
     } else if (variantsWithPrice.length > 1) {
-      console.log("Using variants_with_price source");
       allSellerVariants = variantsWithPrice;
     } else if (sellers.length > 1) {
-      console.log("Using sellers source");
       allSellerVariants = sellers;
     } else if (allSellers.length > 1) {
-      console.log("Using all_sellers source");
       allSellerVariants = allSellers;
     }
 
     if (allSellerVariants.length > 1) {
-      console.log(`Processing ${allSellerVariants.length} seller variants`);
+      // Process multiple seller variants
 
       // Map the variants to our format
       const sellerResults = allSellerVariants
@@ -331,15 +312,7 @@ async function getProductCPC(productId) {
             variant.size ||
             variant.themes?.find((t) => t.type === "text")?.value;
 
-          console.log("Processing variant:", {
-            id: variant.id,
-            seller: seller.title || seller.name,
-            sellerCode: seller.code,
-            color: color ? color.title || color.name || color : null,
-            size: size ? size.title || size.name || size : null,
-            price: price,
-            originalPrice: originalPrice,
-          });
+          // Extract variant information for processing
 
           // Build variant description for display
           let variantDescription = "";
@@ -405,32 +378,23 @@ async function getProductCPC(productId) {
             ) === index
           );
         })
-        .sort((a, b) => a.price - b.price);
+        .sort((a, b) => {
+          // Put products with price 0 at bottom
+          if (a.price === 0 && b.price === 0) return 0;
+          if (a.price === 0) return 1;
+          if (b.price === 0) return -1;
+          return a.price - b.price;
+        });
 
       if (sellerResults.length > 1) {
-        console.log(
-          `Found ${sellerResults.length} different sellers for the same product`
-        );
-        console.log(
-          "Seller results:",
-          sellerResults.map((s) => ({ seller: s.seller, price: s.price }))
-        );
         return sellerResults;
-      } else {
-        console.log(
-          `Only found ${sellerResults.length} valid seller(s), falling back to single seller`
-        );
       }
     }
 
     // Fallback: Try using search API to find multiple sellers for this product
-    console.log("Attempting fallback search for multiple sellers");
     try {
       const productTitle = product.title_fa || product.title_en || "";
       if (productTitle) {
-        console.log(
-          `Searching for multiple sellers using title: "${productTitle}"`
-        );
         const searchResults = await searchPricesAPI(productTitle);
 
         // Helper function to calculate title similarity
@@ -448,9 +412,7 @@ async function getProductCPC(productId) {
               productTitle.toLowerCase(),
               (result.title || "").toLowerCase()
             );
-            console.log(
-              `Comparing "${productTitle}" vs "${result.title}" - similarity: ${similarity}`
-            );
+            // Compare product titles for similarity
             return similarity > 0.7 || result.productId === product.id;
           })
           .map((result) => {
@@ -474,22 +436,17 @@ async function getProductCPC(productId) {
           });
 
         if (sameProductResults.length > 1) {
-          console.log(
-            `Found ${sameProductResults.length} sellers via search API`
-          );
-          console.log(
-            "Search-based seller results:",
-            sameProductResults.map((s) => ({
-              seller: s.seller,
-              price: s.price,
-              url: s.url,
-            }))
-          );
-          return sameProductResults.sort((a, b) => a.price - b.price);
+          return sameProductResults.sort((a, b) => {
+            // Put products with price 0 at bottom
+            if (a.price === 0 && b.price === 0) return 0;
+            if (a.price === 0) return 1;
+            if (b.price === 0) return -1;
+            return a.price - b.price;
+          });
         }
       }
     } catch (searchError) {
-      console.log("Search fallback failed:", searchError);
+      // Search fallback failed, continue to default variant
     }
 
     // If no multiple sellers found, return the single default variant with a note
@@ -528,7 +485,6 @@ async function getProductCPC(productId) {
 
     return [];
   } catch (error) {
-    console.error("Error fetching product seller comparison:", error);
     return [];
   }
 }
@@ -561,7 +517,6 @@ async function searchBothPlatforms(query, digikalaPage = 1, torobPage = 1) {
       },
     };
   } catch (error) {
-    console.error("Error searching both platforms:", error);
     throw new Error("خطا در جستجو در هر دو پلتفرم");
   }
 }
@@ -585,7 +540,7 @@ async function searchTorobAPI(query, page = 1) {
         searchQuery = suggestions[0].text || query;
       }
     } catch (suggestError) {
-      console.log("Suggestion API failed, using original query");
+      // Suggestion API failed, use original query
     }
 
     // Search for products
@@ -604,41 +559,54 @@ async function searchTorobAPI(query, page = 1) {
     const data = await response.json();
     const products = data.results || [];
 
-    const results = products.slice(0, 10).map((product) => {
+    const results = products
+      .map((product) => {
+        const price = product.price || 0;
+        const shop_text = product.shop_text || "";
 
-      const price = product.price || 0;
-      const shop_text = product.shop_text || "";
-
-      return {
-        productId: product.random_key,
-        productKey: product.random_key,
-        seller:
-          shop_text
-            .replace("در ", "")
-            .replace(" فروشگاه", "")
-            .replace("فروشگاه", "")
-            .trim() || "نامشخص",
-        sellerCount: shop_text.match(/\d+/)
-          ? parseInt(shop_text.match(/\d+/)[0])
-          : 1,
-        sellerRating: 4.0, // Torob doesn't provide detailed seller ratings
-        price: price * 10, // Convert Toman to Rial for consistency
-        originalPrice: price * 10,
-        rating: 4.0,
-        title: product.name1 || product.name2 || "محصول نامشخص",
-        url: `https://torob.com${product.web_client_absolute_url}`,
-        image: product.image_url || "",
-        discount: 0,
-        platform: "torob",
-        stock_status: product.stock_status || "",
-        estimated_sell: product.estimated_sell || "",
-        shop_text: shop_text,
-      };
-    });
+        return {
+          productId: product.random_key,
+          productKey: product.random_key,
+          seller: (() => {
+            const cleanedSeller = shop_text
+              .replace("در ", "")
+              .replace(" فروشگاه", "")
+              .replace("فروشگاه", "")
+              .trim() || "نامشخص";
+            // If seller is just a number, add descriptive text
+            if (/^\d+$/.test(cleanedSeller)) {
+              return `${cleanedSeller} عدد فروشنده`;
+            }
+            return cleanedSeller;
+          })(),
+          sellerCount: shop_text.match(/\d+/)
+            ? parseInt(shop_text.match(/\d+/)[0])
+            : 1,
+          sellerRating: 4.0, // Torob doesn't provide detailed seller ratings
+          price: price * 10, // Convert Toman to Rial for consistency
+          originalPrice: price * 10,
+          rating: 4.0,
+          title: product.name1 || product.name2 || "محصول نامشخص",
+          url: `https://torob.com${product.web_client_absolute_url}`,
+          image: product.image_url || "",
+          discount: 0,
+          platform: "torob",
+          stock_status: product.stock_status || "",
+          estimated_sell: product.estimated_sell || "",
+          shop_text: shop_text,
+        };
+      })
+      .sort((a, b) => {
+        // Put products with price 0 at bottom
+        if (a.price === 0 && b.price === 0) return 0;
+        if (a.price === 0) return 1;
+        if (b.price === 0) return -1;
+        return a.price - b.price;
+      })
+      .slice(0, 10);
 
     return results;
   } catch (error) {
-    console.error("Error searching Torob prices:", error);
     throw new Error("خطا در جستجوی ترب");
   }
 }
@@ -685,7 +653,13 @@ async function getTorobProductDetails(productKey) {
         rank: index + 1,
       }))
       .filter((seller) => !seller.is_price_unreliable && seller.availability)
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => {
+        // Put products with price 0 at bottom
+        if (a.price === 0 && b.price === 0) return 0;
+        if (a.price === 0) return 1;
+        if (b.price === 0) return -1;
+        return a.price - b.price;
+      });
 
     return {
       id: productKey,
@@ -702,7 +676,6 @@ async function getTorobProductDetails(productKey) {
       availability: data.availability !== false,
     };
   } catch (error) {
-    console.error("Error fetching Torob product details:", error);
     throw new Error("خطا در دریافت اطلاعات محصول از ترب");
   }
 }
@@ -711,22 +684,21 @@ async function getTorobProductDetails(productKey) {
 async function loadMoreResults(query, platform, page) {
   try {
     let results;
-    
-    if (platform === 'digikala') {
+
+    if (platform === "digikala") {
       results = await searchPricesAPI(query, page);
-    } else if (platform === 'torob') {
+    } else if (platform === "torob") {
       results = await searchTorobAPI(query, page);
     } else {
-      throw new Error('Invalid platform specified');
+      throw new Error("Invalid platform specified");
     }
-    
+
     return {
       platform: platform,
       page: page,
-      data: results || []
+      data: results || [],
     };
   } catch (error) {
-    console.error(`Error loading more ${platform} results:`, error);
     throw error;
   }
 }
@@ -736,22 +708,26 @@ function getProductImage(product) {
   // Try different image sources in order of preference
   const imageSources = [
     product.images?.main?.url?.[0],
-    product.images?.main?.url?.[1], 
+    product.images?.main?.url?.[1],
     product.images?.list?.[0]?.image?.url?.[0],
     product.images?.list?.[0]?.image?.url?.[1],
     product.images?.list?.[0]?.url?.[0],
     product.images?.list?.[1]?.image?.url?.[0],
     product.default_variant?.images?.main?.url?.[0],
-    product.default_variant?.images?.list?.[0]?.image?.url?.[0]
+    product.default_variant?.images?.list?.[0]?.image?.url?.[0],
   ];
-  
+
   // Return the first valid image URL
   for (const imageUrl of imageSources) {
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+    if (
+      imageUrl &&
+      typeof imageUrl === "string" &&
+      imageUrl.startsWith("http")
+    ) {
       return imageUrl;
     }
   }
-  
+
   return "";
 }
 
@@ -763,4 +739,3 @@ function generateRandomId() {
     return v.toString(16);
   });
 }
-

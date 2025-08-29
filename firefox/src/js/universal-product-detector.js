@@ -194,7 +194,7 @@
               }
             });
           } catch (e) {
-            console.log("Error processing selector:", selector, e);
+            // Silently continue if selector fails
           }
         });
       }
@@ -318,7 +318,7 @@
         };
       }
     } catch (error) {
-      console.log("Error detecting main product:", error);
+      // Silently handle main product detection errors
     }
 
     return null;
@@ -442,7 +442,7 @@
           });
         });
       } catch (e) {
-        console.log("Error detecting related products:", e);
+        // Silently handle related product detection errors
       }
     });
 
@@ -475,7 +475,7 @@
         container: container,
       };
     } catch (error) {
-      console.log("Error extracting product from container:", error);
+      // Silently handle product extraction errors
       return null;
     }
   }
