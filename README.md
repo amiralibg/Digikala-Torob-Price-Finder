@@ -72,11 +72,11 @@ Compare different variants and configurations of the same product:
 
 #### Option 1: Direct Download (Recommended)
 
-1. **[Download the Chrome Extension (.crx and .zip file)](https://github.com/amiralibg/Digikala-Torob-Price-Finder/releases/tag/v0.0.1)**
+1. **[Download the Chrome Extension (.zip file)](https://github.com/amiralibg/Digikala-Torob-Price-Finder/releases/tag/v0.0.1)**
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" in the top right corner
-4. Drag and drop the `.crx` file onto the extensions page
-5. Click "Add Extension" when prompted
+4. Click "Load unpacked" and select the `digikala-torob-price-finder-v0.0.1/` folder
+5. The extension will appear in your extensions list
 
 #### Option 2: Load Unpacked (For Developers)
 
