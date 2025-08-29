@@ -209,7 +209,7 @@ Contributions are welcome! Please:
 
 ## 🏷️ Version History
 
-- **v0.1**: Initial release with Digikala and Trob integration | Product Detection
+- **v0.0.1**: Initial release with Digikala and Trob integration | Product Detection
 
 ---
 
