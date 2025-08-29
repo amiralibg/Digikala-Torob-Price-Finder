@@ -101,6 +101,7 @@ async function searchPricesAPI(query, page = 1) {
           product.price?.rrp_price ||
           price;
         const seller = product.default_variant?.seller || product.seller || {};
+        const title = product.title_fa || product.title_en || "محصول نامشخص";
 
         return {
           productId: product.id,
@@ -111,7 +112,7 @@ async function searchPricesAPI(query, page = 1) {
           price: price,
           originalPrice: originalPrice,
           rating: product.rating?.average_rating || 4.0,
-          title: product.title_fa || product.title_en || "محصول نامشخص",
+          title: title,
           url: `https://www.digikala.com/product/dkp-${product.id}/`,
           image: getProductImage(product),
           discount:
@@ -120,6 +121,7 @@ async function searchPricesAPI(query, page = 1) {
               : 0,
           isTrusted: seller.properties?.is_trusted || false,
           isOfficial: seller.properties?.is_official || false,
+          relevanceScore: calculateRelevanceScore(title, query, price),
         };
       })
       .sort((a, b) => {
@@ -127,7 +129,9 @@ async function searchPricesAPI(query, page = 1) {
         if (a.price === 0 && b.price === 0) return 0;
         if (a.price === 0) return 1;
         if (b.price === 0) return -1;
-        return a.price - b.price;
+
+        // Sort by relevance score (higher is better)
+        return b.relevanceScore - a.relevanceScore;
       })
       .slice(0, 5);
 
@@ -159,6 +163,7 @@ async function searchPricesAPI(query, page = 1) {
             0;
           const seller =
             product.default_variant?.seller || product.seller || {};
+          const title = product.title_fa || "محصول نامشخص";
 
           return {
             productId: product.id,
@@ -168,11 +173,12 @@ async function searchPricesAPI(query, page = 1) {
             sellerGrade: seller.grade?.label || seller.grade?.title || "خوب",
             price: price,
             rating: product.rating?.average_rating || 4.0,
-            title: product.title_fa || "محصول نامشخص",
+            title: title,
             url: `https://www.digikala.com/product/dkp-${product.id}/`,
             image: getProductImage(product),
             isTrusted: seller.properties?.is_trusted || false,
             isOfficial: seller.properties?.is_official || false,
+            relevanceScore: calculateRelevanceScore(title, query, price),
           };
         })
         .sort((a, b) => {
@@ -180,7 +186,9 @@ async function searchPricesAPI(query, page = 1) {
           if (a.price === 0 && b.price === 0) return 0;
           if (a.price === 0) return 1;
           if (b.price === 0) return -1;
-          return a.price - b.price;
+
+          // Sort by relevance score (higher is better)
+          return b.relevanceScore - a.relevanceScore;
         })
         .slice(0, 5);
     } catch (fallbackError) {
@@ -413,7 +421,17 @@ async function getProductCPC(productId) {
               (result.title || "").toLowerCase()
             );
             // Compare product titles for similarity
-            return similarity > 0.7 || result.productId === product.id;
+            return similarity > 0.6 || result.productId === product.id;
+          })
+          .map((result) => {
+            return {
+              ...result,
+              relevanceScore: calculateRelevanceScore(
+                result.title,
+                productTitle,
+                result.price
+              ),
+            };
           })
           .map((result) => {
             const similarity = calculateTitleSimilarity(
@@ -441,6 +459,12 @@ async function getProductCPC(productId) {
             if (a.price === 0 && b.price === 0) return 0;
             if (a.price === 0) return 1;
             if (b.price === 0) return -1;
+
+            // Sort by relevance score first, then by price
+            const relevanceDiff = b.relevanceScore - a.relevanceScore;
+            if (Math.abs(relevanceDiff) > 0.1) {
+              return relevanceDiff;
+            }
             return a.price - b.price;
           });
         }
@@ -563,16 +587,18 @@ async function searchTorobAPI(query, page = 1) {
       .map((product) => {
         const price = product.price || 0;
         const shop_text = product.shop_text || "";
+        const title = product.name1 || product.name2 || "محصول نامشخص";
 
         return {
           productId: product.random_key,
           productKey: product.random_key,
           seller: (() => {
-            const cleanedSeller = shop_text
-              .replace("در ", "")
-              .replace(" فروشگاه", "")
-              .replace("فروشگاه", "")
-              .trim() || "نامشخص";
+            const cleanedSeller =
+              shop_text
+                .replace("در ", "")
+                .replace(" فروشگاه", "")
+                .replace("فروشگاه", "")
+                .trim() || "نامشخص";
             // If seller is just a number, add descriptive text
             if (/^\d+$/.test(cleanedSeller)) {
               return `${cleanedSeller} عدد فروشنده`;
@@ -586,7 +612,7 @@ async function searchTorobAPI(query, page = 1) {
           price: price * 10, // Convert Toman to Rial for consistency
           originalPrice: price * 10,
           rating: 4.0,
-          title: product.name1 || product.name2 || "محصول نامشخص",
+          title: title,
           url: `https://torob.com${product.web_client_absolute_url}`,
           image: product.image_url || "",
           discount: 0,
@@ -594,6 +620,11 @@ async function searchTorobAPI(query, page = 1) {
           stock_status: product.stock_status || "",
           estimated_sell: product.estimated_sell || "",
           shop_text: shop_text,
+          relevanceScore: calculateRelevanceScore(
+            title,
+            searchQuery,
+            price * 10
+          ),
         };
       })
       .sort((a, b) => {
@@ -601,7 +632,9 @@ async function searchTorobAPI(query, page = 1) {
         if (a.price === 0 && b.price === 0) return 0;
         if (a.price === 0) return 1;
         if (b.price === 0) return -1;
-        return a.price - b.price;
+
+        // Sort by relevance score (higher is better)
+        return b.relevanceScore - a.relevanceScore;
       })
       .slice(0, 10);
 
@@ -729,6 +762,114 @@ function getProductImage(product) {
   }
 
   return "";
+}
+
+// Function to calculate relevance score based on title similarity and price
+function calculateRelevanceScore(productTitle, searchQuery, price) {
+  const normalizedQuery = searchQuery
+    .toLowerCase()
+    .replace(/[\u0600-\u06FF\s]+/g, " ")
+    .trim();
+  const normalizedTitle = productTitle
+    .toLowerCase()
+    .replace(/[\u0600-\u06FF\s]+/g, " ")
+    .trim();
+
+  // Extract keywords from query and title
+  const queryWords = normalizedQuery
+    .split(/\s+/)
+    .filter((word) => word.length > 1);
+  const titleWords = normalizedTitle
+    .split(/\s+/)
+    .filter((word) => word.length > 1);
+
+  if (queryWords.length === 0) return 1;
+
+  // Calculate text similarity score
+  let titleSimilarity = 0;
+  let exactMatches = 0;
+  let partialMatches = 0;
+
+  for (const queryWord of queryWords) {
+    // Check for exact matches
+    if (titleWords.some((titleWord) => titleWord === queryWord)) {
+      exactMatches++;
+    }
+    // Check for partial matches (word contains query word or vice versa)
+    else if (
+      titleWords.some(
+        (titleWord) =>
+          titleWord.includes(queryWord) ||
+          queryWord.includes(titleWord) ||
+          // Check if words are similar enough (edit distance)
+          calculateWordSimilarity(titleWord, queryWord) > 0.7
+      )
+    ) {
+      partialMatches++;
+    }
+  }
+
+  // Calculate similarity percentage
+  titleSimilarity = (exactMatches * 2 + partialMatches) / queryWords.length;
+
+  // If no similarity found, check if the title contains the entire query
+  if (titleSimilarity === 0 && normalizedTitle.includes(normalizedQuery)) {
+    titleSimilarity = 0.5;
+  }
+
+  // Price factor: normalize price to prevent extreme skewing
+  // Lower prices get better score, but not overwhelmingly so
+  const maxPrice = 50000000; // 50M Rials as reference point
+  const normalizedPrice = Math.min(price, maxPrice);
+  const priceFactor = price > 0 ? 1 - (normalizedPrice / maxPrice) * 0.3 : 0; // Price contributes max 30%
+
+  // Combine scores: 70% relevance + 30% price advantage
+  const finalScore = titleSimilarity * 0.7 + priceFactor * 0.3;
+
+  return finalScore;
+}
+
+// Helper function to calculate word similarity using simple character overlap
+function calculateWordSimilarity(word1, word2) {
+  if (word1 === word2) return 1;
+  if (word1.length === 0 || word2.length === 0) return 0;
+
+  const longer = word1.length > word2.length ? word1 : word2;
+  const shorter = word1.length > word2.length ? word2 : word1;
+
+  if (longer.length === 0) return 1;
+
+  const editDistance = calculateEditDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+// Calculate edit distance between two strings
+function calculateEditDistance(str1, str2) {
+  const matrix = [];
+
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[str2.length][str1.length];
 }
 
 // Helper function to generate random ID for API calls
