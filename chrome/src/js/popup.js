@@ -1064,7 +1064,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         searchState: searchState,
         results: results,
         timestamp: Date.now(),
-        version: "0.1",
+        version: "0.0.1",
       };
 
       await browserAPI.storage.local.set({
@@ -1089,7 +1089,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
 
       // Clear old cache if version doesn't match (for updates)
-      if (!persistData.version || persistData.version !== "0.1") {
+      if (!persistData.version || persistData.version !== "0.0.1") {
         await browserAPI.storage.local.remove(["persistedSearchResults"]);
         return;
       }
