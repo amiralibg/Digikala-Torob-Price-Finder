@@ -88,15 +88,13 @@ Compare different variants and configurations of the same product:
 
 ### Firefox Add-on
 
-#### Option 1: Direct Download
+**🚧 Coming Soon**
 
-1. **[Download the Firefox Add-on (.xpi file)](https://github.com/amiralibg/DigikalaExtention/releases/latest/download/digikala-price-finder-firefox.xpi)**
-2. Open Firefox and navigate to `about:addons`
-3. Click the gear icon and select "Install Add-on From File"
-4. Select the downloaded `.xpi` file
-5. Click "Add" when prompted
+The Firefox version is currently under review for the Firefox Add-on store. The release will be available soon!
 
-#### Option 2: Temporary Installation (For Developers)
+In the meantime, developers can test the Firefox version using temporary installation:
+
+#### Temporary Installation (For Developers)
 
 1. Navigate to `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on"

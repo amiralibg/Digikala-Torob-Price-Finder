@@ -30,3 +30,4 @@ web-ext-artifacts/
 *.temp
 
 chrome.pem
+chrome_release_notes.txt
